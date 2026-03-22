@@ -47,6 +47,21 @@ export interface ChatMessage {
   timestamp: string
 }
 
+export type DebtType = "owed_by_me" | "owed_to_me"
+export type DebtStatus = "active" | "paid"
+
+export interface Debt {
+  id: string
+  name: string
+  amount: number
+  paidAmount: number
+  type: DebtType
+  dueDate?: string
+  description?: string
+  createdAt: number
+  status: DebtStatus
+}
+
 export const EXPENSE_CATEGORIES: Category[] = [
   "food",
   "transport",
@@ -74,8 +89,7 @@ export const INCOME_CATEGORIES: Category[] = [
 ]
 
 export const ALL_CATEGORIES: Category[] = [
-  ...EXPENSE_CATEGORIES,
-  ...INCOME_CATEGORIES.filter((c) => c !== "other"),
+  ...new Set([...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES.filter((c) => c !== "other")]),
 ]
 
 export const CATEGORY_LABELS: Record<Category, string> = {

@@ -1,14 +1,17 @@
 "use client"
 
 import { useAuth } from "@/lib/auth-context"
+import { useCurrency } from "@/lib/currency-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { AppSidebar } from "./app-sidebar"
 import { MobileNav } from "./mobile-nav"
 import { Spinner } from "@/components/ui/spinner"
+import { CurrencyPickerDialog } from "./currency-picker-dialog"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
+  const { isFirstTime, isLoading: isCurrencyLoading } = useCurrency()
   const router = useRouter()
 
   useEffect(() => {
@@ -17,7 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, router])
 
-  if (isLoading) {
+  if (isLoading || (user && isCurrencyLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Spinner className="h-8 w-8" />
@@ -31,6 +34,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
+      <CurrencyPickerDialog
+        open={isFirstTime}
+        onOpenChange={() => {}}
+        required
+      />
       <div className="hidden md:block">
         <AppSidebar />
       </div>

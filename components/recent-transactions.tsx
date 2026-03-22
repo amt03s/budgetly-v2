@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useBudget } from "@/lib/budget-context"
-import { formatCurrency } from "@/lib/currency"
+import { useCurrency } from "@/lib/currency-context"
 import { getTransactionCategoryLabel } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -15,6 +15,7 @@ function formatDate(dateString: string): string {
 
 export function RecentTransactions() {
   const { transactions, getWalletById } = useBudget()
+  const { formatAmount } = useCurrency()
 
   const recentTransactions = [...transactions]
     .sort((a, b) => {
@@ -66,7 +67,7 @@ export function RecentTransactions() {
                     )}
                   >
                     {transaction.type === "income" ? "+" : "-"}
-                    {formatCurrency(transaction.amount)}
+                    {formatAmount(transaction.amount)}
                   </p>
                 </div>
               )

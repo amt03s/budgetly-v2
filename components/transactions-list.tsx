@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import {
   Table,
   TableBody,
@@ -10,7 +10,15 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,10 +31,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useBudget } from "@/lib/budget-context"
-import { formatCurrency } from "@/lib/currency"
-import { getTransactionCategoryLabel, type Transaction } from "@/lib/types"
+import { useCurrency } from "@/lib/currency-context"
+import {
+  getTransactionCategoryLabel,
+  ALL_CATEGORIES,
+  CATEGORY_LABELS,
+  type Transaction,
+  type Category,
+} from "@/lib/types"
 import { TransactionDialog } from "./transaction-dialog"
-import { Pencil, Trash2, Plus } from "lucide-react"
+import { Pencil, Trash2, Plus, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 function formatDate(dateString: string): string {
@@ -42,27 +56,78 @@ interface TransactionsListProps {
 }
 
 export function TransactionsList({ walletId }: TransactionsListProps) {
-  const { transactions, getWalletById, deleteTransaction } = useBudget()
+  const { transactions, wallets, getWalletById, deleteTransaction } = useBudget()
+  const { formatAmount } = useCurrency()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
 
-  const filteredTransactions = walletId
-    ? transactions.filter((t) => t.walletId === walletId)
-    : transactions
+  // Filter state
+  const [search, setSearch] = useState("")
+  const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all")
+  const [categoryFilter, setCategoryFilter] = useState<"all" | Category>("all")
+  const [walletFilter, setWalletFilter] = useState<"all" | string>("all")
+  const [dateFrom, setDateFrom] = useState("")
+  const [dateTo, setDateTo] = useState("")
 
-  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
-    const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime()
-    if (dateDiff !== 0) {
-      return dateDiff
+  const hasActiveFilters =
+    search !== "" ||
+    typeFilter !== "all" ||
+    categoryFilter !== "all" ||
+    walletFilter !== "all" ||
+    dateFrom !== "" ||
+    dateTo !== ""
+
+  const clearFilters = () => {
+    setSearch("")
+    setTypeFilter("all")
+    setCategoryFilter("all")
+    setWalletFilter("all")
+    setDateFrom("")
+    setDateTo("")
+  }
+
+  const filteredTransactions = useMemo(() => {
+    let result = walletId
+      ? transactions.filter((t) => t.walletId === walletId)
+      : transactions
+
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      result = result.filter(
+        (t) =>
+          t.description?.toLowerCase().includes(q) ||
+          getTransactionCategoryLabel(t).toLowerCase().includes(q)
+      )
     }
 
-    const createdAtDiff = (b.createdAt ?? 0) - (a.createdAt ?? 0)
-    if (createdAtDiff !== 0) {
-      return createdAtDiff
+    if (typeFilter !== "all") {
+      result = result.filter((t) => t.type === typeFilter)
     }
 
-    return b.id.localeCompare(a.id)
-  })
+    if (categoryFilter !== "all") {
+      result = result.filter((t) => t.category === categoryFilter)
+    }
+
+    if (!walletId && walletFilter !== "all") {
+      result = result.filter((t) => t.walletId === walletFilter)
+    }
+
+    if (dateFrom) {
+      result = result.filter((t) => t.date >= dateFrom)
+    }
+
+    if (dateTo) {
+      result = result.filter((t) => t.date <= dateTo)
+    }
+
+    return [...result].sort((a, b) => {
+      const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime()
+      if (dateDiff !== 0) return dateDiff
+      const createdAtDiff = (b.createdAt ?? 0) - (a.createdAt ?? 0)
+      if (createdAtDiff !== 0) return createdAtDiff
+      return b.id.localeCompare(a.id)
+    })
+  }, [transactions, walletId, search, typeFilter, categoryFilter, walletFilter, dateFrom, dateTo])
 
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction)
@@ -89,9 +154,91 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
           </Button>
         </CardHeader>
         <CardContent>
-          {sortedTransactions.length === 0 ? (
+          {/* Search & filters */}
+          <div className="mb-4 flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by description or category…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="shrink-0">
+                  <X className="mr-1 h-4 w-4" />
+                  Clear
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as typeof typeFilter)}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All types</SelectItem>
+                  <SelectItem value="income">Income</SelectItem>
+                  <SelectItem value="expense">Expense</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as typeof categoryFilter)}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {ALL_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {CATEGORY_LABELS[cat]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {!walletId && (
+                <Select value={walletFilter} onValueChange={(v) => setWalletFilter(v)}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Wallet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All wallets</SelectItem>
+                    {wallets.map((w) => (
+                      <SelectItem key={w.id} value={w.id}>
+                        {w.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-[150px]"
+                title="From date"
+                placeholder="From"
+              />
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-[150px]"
+                title="To date"
+                placeholder="To"
+              />
+            </div>
+          </div>
+
+          {filteredTransactions.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              No transactions yet. Add your first transaction to get started.
+              {hasActiveFilters
+                ? "No transactions match your filters."
+                : "No transactions yet. Add your first transaction to get started."}
             </p>
           ) : (
             <Table>
@@ -106,7 +253,7 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedTransactions.map((transaction) => {
+                {filteredTransactions.map((transaction) => {
                   const wallet = getWalletById(transaction.walletId)
                   return (
                     <TableRow key={transaction.id}>
@@ -127,7 +274,7 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
                         )}
                       >
                         {transaction.type === "income" ? "+" : "-"}
-                        {formatCurrency(transaction.amount)}
+                        {formatAmount(transaction.amount)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
@@ -148,7 +295,7 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This action cannot be undone. The transaction of {formatCurrency(transaction.amount)} on {formatDate(transaction.date)} will be permanently removed.
+                                  This action cannot be undone. The transaction of {formatAmount(transaction.amount)} on {formatDate(transaction.date)} will be permanently removed.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

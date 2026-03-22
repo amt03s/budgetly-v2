@@ -3,7 +3,7 @@
 import { use } from "react"
 import Link from "next/link"
 import { useBudget } from "@/lib/budget-context"
-import { formatCurrency } from "@/lib/currency"
+import { useCurrency } from "@/lib/currency-context"
 import { TransactionsList } from "@/components/transactions-list"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -16,6 +16,7 @@ export default function WalletDetailPage({
 }) {
   const { id } = use(params)
   const { getWalletById } = useBudget()
+  const { formatAmount } = useCurrency()
   const wallet = getWalletById(id)
 
   if (!wallet) {
@@ -52,7 +53,7 @@ export default function WalletDetailPage({
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">Current Balance</p>
-            <p className="text-2xl font-bold">{formatCurrency(wallet.balance)}</p>
+            <p className="text-2xl font-bold">{formatAmount(wallet.balance)}</p>
           </div>
         </CardContent>
       </Card>

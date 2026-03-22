@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useBudget } from "@/lib/budget-context"
-import { formatCurrency } from "@/lib/currency"
+import { useCurrency } from "@/lib/currency-context"
 import { getTransactionCategoryLabel, type Category } from "@/lib/types"
 import {
   PieChart,
@@ -32,6 +32,7 @@ const COLORS = [
 
 export function InsightsCharts() {
   const { transactions } = useBudget()
+  const { formatAmount } = useCurrency()
 
   const categoryData = useMemo(() => {
     const expenses = transactions.filter((t) => t.type === "expense")
@@ -106,7 +107,7 @@ export function InsightsCharts() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
+                    formatter={(value: number) => formatAmount(value)}
                     contentStyle={{
                       backgroundColor: "white",
                       border: "1px solid #e5e5e5",
@@ -157,10 +158,10 @@ export function InsightsCharts() {
                   tick={{ fontSize: 12 }}
                   tickLine={false}
                   axisLine={{ stroke: "#e5e5e5" }}
-                  tickFormatter={(value) => formatCurrency(value, { maximumFractionDigits: 0 })}
+                  tickFormatter={(value) => formatAmount(value, { maximumFractionDigits: 0 })}
                 />
                 <Tooltip
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value: number) => formatAmount(value)}
                   contentStyle={{
                     backgroundColor: "white",
                     border: "1px solid #e5e5e5",

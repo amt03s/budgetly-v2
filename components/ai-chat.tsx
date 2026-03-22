@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useBudget } from "@/lib/budget-context"
+import { useCurrency } from "@/lib/currency-context"
 import { getTransactionCategoryLabel } from "@/lib/types"
 import { Send, Bot, User } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -18,6 +19,7 @@ type ChatMessage = {
 
 export function AIChat() {
   const { transactions, totalBalance, totalIncome, totalExpenses, wallets } = useBudget()
+  const { currency } = useCurrency()
   const [inputValue, setInputValue] = useState("")
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -90,6 +92,7 @@ export function AIChat() {
         body: JSON.stringify({
           messages: [...messages, userMessage].map((m) => ({ role: m.role, content: m.text })),
           financialData,
+          currency,
         }),
       })
 

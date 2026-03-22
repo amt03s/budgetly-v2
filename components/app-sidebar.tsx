@@ -9,15 +9,23 @@ import {
   PieChart,
   MessageSquare,
   LogOut,
+  Globe,
+  CreditCard,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
+import { useCurrency } from "@/lib/currency-context"
+import { getCurrencyConfig } from "@/lib/currency"
 import { Button } from "@/components/ui/button"
+import { CurrencyPickerDialog } from "./currency-picker-dialog"
+import { useState } from "react"
+import { Spinner } from "@/components/ui/spinner"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/dashboard/wallets", label: "Wallets", icon: Wallet },
+  { href: "/dashboard/debts", label: "Debts", icon: CreditCard },
   { href: "/dashboard/insights", label: "Insights", icon: PieChart },
   { href: "/dashboard/chat", label: "AI Chat", icon: MessageSquare },
 ]
@@ -26,11 +34,15 @@ export function AppSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logOut } = useAuth()
+  const { currency, isFetchingRate } = useCurrency()
+  const [currencyDialogOpen, setCurrencyDialogOpen] = useState(false)
 
   const handleLogout = async () => {
     await logOut()
     router.push("/")
   }
+
+  const currencyConfig = getCurrencyConfig(currency)
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-background">
@@ -68,10 +80,26 @@ export function AppSidebar() {
           </ul>
         </nav>
 
-        <div className="border-t border-border p-4">
-          <div className="mb-3 truncate text-sm font-medium">
+        <div className="border-t border-border p-4 flex flex-col gap-2">
+          <div className="truncate text-sm font-medium">
             {user?.displayName || user?.email}
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+            onClick={() => setCurrencyDialogOpen(true)}
+          >
+            <Globe className="h-4 w-4" />
+            <span className="flex-1 text-left">Currency</span>
+            {isFetchingRate ? (
+              <Spinner className="h-3 w-3" />
+            ) : (
+              <span className="text-xs opacity-70">
+                {currencyConfig.symbol} {currencyConfig.code}
+              </span>
+            )}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -83,6 +111,11 @@ export function AppSidebar() {
           </Button>
         </div>
       </div>
+
+      <CurrencyPickerDialog
+        open={currencyDialogOpen}
+        onOpenChange={setCurrencyDialogOpen}
+      />
     </aside>
   )
 }

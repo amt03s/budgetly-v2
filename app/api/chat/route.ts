@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
-import { formatCurrency } from "@/lib/currency"
+import { formatCurrencyWithCode } from "@/lib/currency"
 export const maxDuration = 60
 
 type ChatMessage = {
@@ -14,15 +14,17 @@ function getMessageText(message: ChatMessage): string {
 }
 
 export async function POST(req: Request) {
-  const { messages, financialData }: { messages: ChatMessage[]; financialData: Record<string, unknown> } = await req.json()
+  const { messages, financialData, currency = "PHP" }: { messages: ChatMessage[]; financialData: Record<string, unknown>; currency?: string } = await req.json()
+
+  const fmt = (n: number) => formatCurrencyWithCode(n, currency)
 
   const systemPrompt = `You are a helpful personal finance assistant for Budgetly, a budgeting app. 
 You help users understand their spending habits, provide budgeting advice, and answer questions about their finances.
 
 Current user financial data:
-- Total Balance: ${formatCurrency(Number(financialData.totalBalance ?? 0))}
-- Total Income: ${formatCurrency(Number(financialData.totalIncome ?? 0))}
-- Total Expenses: ${formatCurrency(Number(financialData.totalExpenses ?? 0))}
+- Total Balance: ${fmt(Number(financialData.totalBalance ?? 0))}
+- Total Income: ${fmt(Number(financialData.totalIncome ?? 0))}
+- Total Expenses: ${fmt(Number(financialData.totalExpenses ?? 0))}
 - Number of Wallets: ${financialData.walletCount}
 - Number of Transactions: ${financialData.transactionCount}
 - Spending by Category: ${JSON.stringify(financialData.categorySpending)}

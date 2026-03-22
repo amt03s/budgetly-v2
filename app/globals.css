@@ -76,7 +76,7 @@
 
 @theme inline {
   --font-sans: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-mono: var(--font-dm-sans), 'DM Sans', system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

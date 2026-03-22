@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
 import { BudgetProvider } from '@/lib/budget-context'
+import { CurrencyProvider } from '@/lib/currency-context'
 
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans" })
 
@@ -21,9 +22,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${dmSans.variable} font-sans antialiased`}>
         <AuthProvider>
-          <BudgetProvider>
-            {children}
-          </BudgetProvider>
+          <CurrencyProvider>
+            <BudgetProvider>
+              {children}
+            </BudgetProvider>
+          </CurrencyProvider>
         </AuthProvider>
         <Analytics />
       </body>

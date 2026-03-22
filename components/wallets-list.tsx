@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useBudget } from "@/lib/budget-context"
-import { formatCurrency } from "@/lib/currency"
+import { useCurrency } from "@/lib/currency-context"
 import { WalletDialog } from "./wallet-dialog"
 import { TransferDialog } from "./transfer-dialog"
 import type { Wallet } from "@/lib/types"
@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils"
 
 export function WalletsList() {
   const { wallets, deleteWallet } = useBudget()
+  const { formatAmount } = useCurrency()
+
   const [dialogOpen, setDialogOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
   const [editingWallet, setEditingWallet] = useState<Wallet | null>(null)
@@ -78,7 +80,7 @@ export function WalletsList() {
                         wallet.balance >= 0 ? "text-foreground" : "text-destructive"
                       )}
                     >
-                      {formatCurrency(wallet.balance)}
+                      {formatAmount(wallet.balance)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

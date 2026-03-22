@@ -13,13 +13,14 @@ import {
   orderBy,
 } from "firebase/firestore"
 import { db } from "./firebase"
-import type { Transaction, Wallet, ChatMessage } from "./types"
+import type { Transaction, Wallet, ChatMessage, Debt } from "./types"
 import { useAuth } from "./auth-context"
 
 interface BudgetContextType {
   transactions: Transaction[]
   wallets: Wallet[]
   chatMessages: ChatMessage[]
+  debts: Debt[]
   addTransaction: (transaction: Omit<Transaction, "id">) => Promise<void>
   updateTransaction: (id: string, transaction: Partial<Transaction>) => Promise<void>
   deleteTransaction: (id: string) => Promise<void>
@@ -34,9 +35,15 @@ interface BudgetContextType {
     note?: string
   }) => Promise<void>
   addChatMessage: (message: Omit<ChatMessage, "id" | "timestamp">) => void
+  addDebt: (debt: Omit<Debt, "id" | "createdAt" | "paidAmount" | "status">) => Promise<void>
+  updateDebt: (id: string, updates: Partial<Omit<Debt, "id">>) => Promise<void>
+  deleteDebt: (id: string) => Promise<void>
+  recordDebtPayment: (id: string, paymentAmount: number, walletId: string, date: string) => Promise<void>
   totalBalance: number
   totalIncome: number
   totalExpenses: number
+  totalDebt: number
+  totalReceivable: number
   getWalletById: (id: string) => Wallet | undefined
   getTransactionsByWallet: (walletId: string) => Transaction[]
   isLoading: boolean
@@ -55,6 +62,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [wallets, setWallets] = useState<Wallet[]>([])
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [debts, setDebts] = useState<Debt[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   const walletCollection = useMemo(() => {
@@ -73,6 +81,14 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     return collection(db, "users", user.uid, "transactions")
   }, [user])
 
+  const debtCollection = useMemo(() => {
+    if (!user) {
+      return null
+    }
+
+    return collection(db, "users", user.uid, "debts")
+  }, [user])
+
   // Subscribe to wallets collection
   useEffect(() => {
     if (isAuthLoading) {
@@ -83,6 +99,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       setWallets([])
       setTransactions([])
       setChatMessages([])
+      setDebts([])
       setIsLoading(false)
       return
     }
@@ -150,6 +167,35 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
 
     return () => unsubscribe()
   }, [isAuthLoading, transactionCollection])
+
+  // Subscribe to debts collection
+  useEffect(() => {
+    if (isAuthLoading) {
+      return
+    }
+
+    if (!debtCollection) {
+      setDebts([])
+      return
+    }
+
+    const debtsQuery = query(debtCollection, orderBy("createdAt", "desc"))
+    const unsubscribe = onSnapshot(
+      debtsQuery,
+      (snapshot) => {
+        const debtsData: Debt[] = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })) as Debt[]
+        setDebts(debtsData)
+      },
+      (error) => {
+        console.error("Error fetching debts:", error)
+      }
+    )
+
+    return () => unsubscribe()
+  }, [isAuthLoading, debtCollection])
 
   // Calculate wallet balances from transactions
   const walletsWithBalances = useMemo(() => {
@@ -366,6 +412,70 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     await batch.commit()
   }, [user, transactionCollection, wallets])
 
+  const addDebt = useCallback(async (debt: Omit<Debt, "id" | "createdAt" | "paidAmount" | "status">) => {
+    if (!debtCollection) {
+      throw new Error("You must be signed in to add a debt")
+    }
+
+    await addDoc(
+      debtCollection,
+      omitUndefinedFields({
+        ...debt,
+        paidAmount: 0,
+        status: "active",
+        createdAt: Date.now(),
+      } as Record<string, unknown>)
+    )
+  }, [debtCollection])
+
+  const updateDebt = useCallback(async (id: string, updates: Partial<Omit<Debt, "id">>) => {
+    if (!user) {
+      throw new Error("You must be signed in to update a debt")
+    }
+
+    const debtRef = doc(db, "users", user.uid, "debts", id)
+    await updateDoc(debtRef, omitUndefinedFields(updates as Record<string, unknown>))
+  }, [user])
+
+  const deleteDebt = useCallback(async (id: string) => {
+    if (!user) {
+      throw new Error("You must be signed in to delete a debt")
+    }
+
+    const debtRef = doc(db, "users", user.uid, "debts", id)
+    await deleteDoc(debtRef)
+  }, [user])
+
+  const recordDebtPayment = useCallback(async (id: string, paymentAmount: number, walletId: string, date: string) => {
+    if (!user || !transactionCollection) {
+      throw new Error("You must be signed in to record a payment")
+    }
+
+    const debt = debts.find((d) => d.id === id)
+    if (!debt) throw new Error("Debt not found")
+
+    const actualPayment = Math.min(paymentAmount, debt.amount - debt.paidAmount)
+    const newPaidAmount = debt.paidAmount + actualPayment
+    const newStatus: Debt["status"] = newPaidAmount >= debt.amount ? "paid" : "active"
+
+    const debtRef = doc(db, "users", user.uid, "debts", id)
+    const transactionPayload = omitUndefinedFields({
+      amount: actualPayment,
+      type: debt.type === "owed_by_me" ? "expense" : "income",
+      category: "other" as const,
+      customCategory: debt.type === "owed_by_me" ? `Debt payment – ${debt.name}` : `Received from ${debt.name}`,
+      walletId,
+      date,
+      createdAt: Date.now(),
+      description: debt.description,
+    } as Record<string, unknown>)
+
+    await Promise.all([
+      updateDoc(debtRef, { paidAmount: newPaidAmount, status: newStatus }),
+      addDoc(transactionCollection, transactionPayload),
+    ])
+  }, [user, transactionCollection, debts])
+
   const addChatMessage = useCallback((message: Omit<ChatMessage, "id" | "timestamp">) => {
     const newMessage: ChatMessage = {
       ...message,
@@ -375,7 +485,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     setChatMessages((prev) => [...prev, newMessage])
   }, [])
 
-  const { totalBalance, totalIncome, totalExpenses } = useMemo(() => {
+  const { totalBalance, totalIncome, totalExpenses, totalDebt, totalReceivable } = useMemo(() => {
     const income = transactions
       .filter((t) => t.type === "income")
       .reduce((sum, t) => sum + t.amount, 0)
@@ -383,13 +493,22 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       .filter((t) => t.type === "expense")
       .reduce((sum, t) => sum + t.amount, 0)
     const balance = walletsWithBalances.reduce((sum, wallet) => sum + wallet.balance, 0)
+    const activeDebts = debts.filter((d) => d.status === "active")
+    const debt = activeDebts
+      .filter((d) => d.type === "owed_by_me")
+      .reduce((sum, d) => sum + (d.amount - d.paidAmount), 0)
+    const receivable = activeDebts
+      .filter((d) => d.type === "owed_to_me")
+      .reduce((sum, d) => sum + (d.amount - d.paidAmount), 0)
 
     return {
       totalIncome: income,
       totalExpenses: expenses,
       totalBalance: balance,
+      totalDebt: debt,
+      totalReceivable: receivable,
     }
-  }, [transactions, walletsWithBalances])
+  }, [transactions, walletsWithBalances, debts])
 
   const getWalletById = useCallback(
     (id: string) => walletsWithBalances.find((w) => w.id === id),
@@ -407,6 +526,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         transactions,
         wallets: walletsWithBalances,
         chatMessages,
+        debts,
         addTransaction,
         updateTransaction,
         deleteTransaction,
@@ -415,9 +535,15 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         deleteWallet,
         transferBetweenWallets,
         addChatMessage,
+        addDebt,
+        updateDebt,
+        deleteDebt,
+        recordDebtPayment,
         totalBalance,
         totalIncome,
         totalExpenses,
+        totalDebt,
+        totalReceivable,
         getWalletById,
         getTransactionsByWallet,
         isLoading,
