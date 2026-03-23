@@ -11,6 +11,17 @@ import { TransferDialog } from "./transfer-dialog"
 import type { Wallet } from "@/lib/types"
 import { Plus, Pencil, Trash2, ChevronRight, ArrowRightLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export function WalletsList() {
   const { wallets, deleteWallet } = useBudget()
@@ -32,10 +43,13 @@ export function WalletsList() {
     setDialogOpen(true)
   }
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string) => {
+    await deleteWallet(id)
+  }
+
+  const stopLinkNavigation = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    deleteWallet(id)
   }
 
   return (
@@ -92,14 +106,32 @@ export function WalletsList() {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={(e) => handleDelete(wallet.id, e)}
-                      className="opacity-0 transition-opacity group-hover:opacity-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={stopLinkNavigation}
+                          className="opacity-0 transition-opacity group-hover:opacity-100"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete this wallet?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete "{wallet.name}", including its transactions, goals, and recurring schedules. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => void handleDelete(wallet.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </div>
                 </Link>

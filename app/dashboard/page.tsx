@@ -6,6 +6,7 @@ import { Bot } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { SummaryCards } from "@/components/summary-cards"
+import { UpcomingReminders } from "@/components/upcoming-reminders"
 import { RecentTransactions } from "@/components/recent-transactions"
 import { AiSpendingInsights } from "@/components/ai-spending-insights"
 
@@ -68,6 +69,8 @@ export default function DashboardPage() {
       )}
 
       <SummaryCards />
+
+      <UpcomingReminders />
 
       <AiSpendingInsights />
 

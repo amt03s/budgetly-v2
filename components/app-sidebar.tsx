@@ -12,6 +12,7 @@ import {
   Globe,
   CreditCard,
   PiggyBank,
+  Repeat,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
@@ -26,6 +27,7 @@ import { Spinner } from "@/components/ui/spinner"
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/transactions", label: "Transactions", icon: ArrowLeftRight },
+  { href: "/dashboard/recurring", label: "Recurring", icon: Repeat },
   { href: "/dashboard/wallets", label: "Wallets", icon: Wallet },
   { href: "/dashboard/goals", label: "Saving Goals", icon: PiggyBank },
   { href: "/dashboard/debts", label: "Debts", icon: CreditCard },

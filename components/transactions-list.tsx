@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import {
   Select,
   SelectContent,
@@ -40,7 +41,7 @@ import {
   type Category,
 } from "@/lib/types"
 import { TransactionDialog } from "./transaction-dialog"
-import { Pencil, Trash2, Plus, Search, X } from "lucide-react"
+import { Pencil, Trash2, Plus, Search, X, Repeat } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 function formatDate(dateString: string): string {
@@ -252,6 +253,12 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
                           <p className="truncate text-sm font-medium">
                             {transaction.description || "-"}
                           </p>
+                          {transaction.isRecurringInstance && (
+                            <Badge variant="outline" className="mt-1 gap-1">
+                              <Repeat className="h-3 w-3" />
+                              Recurring
+                            </Badge>
+                          )}
                           <p className="text-xs text-muted-foreground">
                             {formatDate(transaction.date)}
                           </p>
@@ -330,7 +337,15 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
                             {formatDate(transaction.date)}
                           </TableCell>
                           <TableCell>
-                            {transaction.description || "-"}
+                            <div className="flex items-center gap-2">
+                              <span>{transaction.description || "-"}</span>
+                              {transaction.isRecurringInstance && (
+                                <Badge variant="outline" className="gap-1">
+                                  <Repeat className="h-3 w-3" />
+                                  Recurring
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>{getTransactionCategoryLabel(transaction)}</TableCell>
                           {!walletId && <TableCell>{wallet?.name || "-"}</TableCell>}

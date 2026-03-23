@@ -1,5 +1,7 @@
 export type TransactionType = "income" | "expense"
 
+export type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly"
+
 export type Category =
   | "food"
   | "transport"
@@ -31,6 +33,26 @@ export interface Transaction {
   walletId: string
   date: string
   description?: string
+  recurringTemplateId?: string
+  isRecurringInstance?: boolean
+}
+
+export interface RecurringTransactionTemplate {
+  id: string
+  name: string
+  amount: number
+  type: TransactionType
+  category: Category
+  customCategory?: string
+  walletId: string
+  description?: string
+  frequency: RecurringFrequency
+  startDate: string
+  nextRunDate: string
+  endDate?: string
+  isPaused: boolean
+  createdAt: number
+  lastGeneratedAt?: number
 }
 
 export interface Wallet {

@@ -1,19 +1,28 @@
 "use client"
 
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from "react"
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from "react"
 import {
   collection,
   addDoc,
   updateDoc,
   deleteDoc,
   doc,
+  getDocs,
   writeBatch,
   onSnapshot,
   query,
   orderBy,
 } from "firebase/firestore"
 import { db } from "./firebase"
-import type { Transaction, Wallet, ChatMessage, Debt, SavingGoal } from "./types"
+import type {
+  Transaction,
+  Wallet,
+  ChatMessage,
+  Debt,
+  SavingGoal,
+  RecurringTransactionTemplate,
+  RecurringFrequency,
+} from "./types"
 import { useAuth } from "./auth-context"
 
 interface BudgetContextType {
@@ -22,6 +31,7 @@ interface BudgetContextType {
   chatMessages: ChatMessage[]
   debts: Debt[]
   savingGoals: SavingGoal[]
+  recurringTemplates: RecurringTransactionTemplate[]
   addTransaction: (transaction: Omit<Transaction, "id">) => Promise<void>
   updateTransaction: (id: string, transaction: Partial<Transaction>) => Promise<void>
   deleteTransaction: (id: string) => Promise<void>
@@ -45,6 +55,11 @@ interface BudgetContextType {
   deleteSavingGoal: (id: string) => Promise<void>
   recordGoalContribution: (id: string, amount: number, date: string) => Promise<void>
   recordGoalWithdrawal: (id: string, amount: number, date: string) => Promise<void>
+  addRecurringTemplate: (template: Omit<RecurringTransactionTemplate, "id" | "createdAt" | "lastGeneratedAt" | "isPaused">) => Promise<string>
+  updateRecurringTemplate: (id: string, updates: Partial<Omit<RecurringTransactionTemplate, "id" | "createdAt">>) => Promise<void>
+  toggleRecurringTemplatePaused: (id: string, paused: boolean) => Promise<void>
+  deleteRecurringTemplate: (id: string) => Promise<void>
+  runRecurringTemplateNow: (id: string) => Promise<void>
   totalBalance: number
   totalIncome: number
   totalExpenses: number
@@ -56,6 +71,30 @@ interface BudgetContextType {
 }
 
 const BudgetContext = createContext<BudgetContextType | undefined>(undefined)
+
+function toDateKey(input: Date): string {
+  const year = input.getFullYear()
+  const month = String(input.getMonth() + 1).padStart(2, "0")
+  const day = String(input.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+function shiftDateByFrequency(dateKey: string, frequency: RecurringFrequency): string {
+  const [year, month, day] = dateKey.split("-").map((part) => Number(part))
+  const base = new Date(year, (month || 1) - 1, day || 1)
+
+  if (frequency === "daily") {
+    base.setDate(base.getDate() + 1)
+  } else if (frequency === "weekly") {
+    base.setDate(base.getDate() + 7)
+  } else if (frequency === "monthly") {
+    base.setMonth(base.getMonth() + 1)
+  } else {
+    base.setFullYear(base.getFullYear() + 1)
+  }
+
+  return toDateKey(base)
+}
 
 function omitUndefinedFields<T extends Record<string, unknown>>(payload: T): Partial<T> {
   return Object.fromEntries(
@@ -70,7 +109,9 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [debts, setDebts] = useState<Debt[]>([])
   const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([])
+  const [recurringTemplates, setRecurringTemplates] = useState<RecurringTransactionTemplate[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const isGeneratingRecurringRef = useRef(false)
 
   const walletCollection = useMemo(() => {
     if (!user) {
@@ -104,6 +145,14 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     return collection(db, "users", user.uid, "savingGoals")
   }, [user])
 
+  const recurringTemplateCollection = useMemo(() => {
+    if (!user) {
+      return null
+    }
+
+    return collection(db, "users", user.uid, "recurringTemplates")
+  }, [user])
+
   // Subscribe to wallets collection
   useEffect(() => {
     if (isAuthLoading) {
@@ -116,6 +165,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       setChatMessages([])
       setDebts([])
       setSavingGoals([])
+      setRecurringTemplates([])
       setIsLoading(false)
       return
     }
@@ -241,6 +291,36 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
 
     return () => unsubscribe()
   }, [isAuthLoading, goalCollection])
+
+  // Subscribe to recurring templates collection
+  useEffect(() => {
+    if (isAuthLoading) {
+      return
+    }
+
+    if (!recurringTemplateCollection) {
+      setRecurringTemplates([])
+      return
+    }
+
+    const recurringQuery = query(recurringTemplateCollection, orderBy("createdAt", "desc"))
+    const unsubscribe = onSnapshot(
+      recurringQuery,
+      (snapshot) => {
+        const templateData: RecurringTransactionTemplate[] = snapshot.docs.map((templateDoc) => ({
+          id: templateDoc.id,
+          ...templateDoc.data(),
+        })) as RecurringTransactionTemplate[]
+
+        setRecurringTemplates(templateData)
+      },
+      (error) => {
+        console.error("Error fetching recurring templates:", error)
+      }
+    )
+
+    return () => unsubscribe()
+  }, [isAuthLoading, recurringTemplateCollection])
 
   // Calculate wallet balances from transactions
   const walletsWithBalances = useMemo(() => {
@@ -378,6 +458,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       // Delete all transactions associated with this wallet
       const walletTransactions = transactions.filter((t) => t.walletId === id)
       const walletGoals = savingGoals.filter((goal) => goal.walletId === id)
+      const walletRecurringTemplates = recurringTemplates.filter((template) => template.walletId === id)
       await Promise.all(
         [
           ...walletTransactions.map((t) =>
@@ -385,6 +466,9 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
           ),
           ...walletGoals.map((goal) =>
             deleteDoc(doc(db, "users", user.uid, "savingGoals", goal.id))
+          ),
+          ...walletRecurringTemplates.map((template) =>
+            deleteDoc(doc(db, "users", user.uid, "recurringTemplates", template.id))
           ),
         ]
       )
@@ -395,7 +479,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       console.error("Error deleting wallet:", error)
       throw error
     }
-  }, [transactions, savingGoals, user])
+  }, [transactions, savingGoals, recurringTemplates, user])
 
   const transferBetweenWallets = useCallback(async (
     params: {
@@ -462,6 +546,191 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     batch.set(incomingRef, incomingTransaction)
     await batch.commit()
   }, [user, transactionCollection, wallets])
+
+  const addRecurringTemplate = useCallback(async (
+    template: Omit<RecurringTransactionTemplate, "id" | "createdAt" | "lastGeneratedAt" | "isPaused">
+  ) => {
+    if (!recurringTemplateCollection) {
+      throw new Error("You must be signed in to create a recurring transaction")
+    }
+
+    const templatePayload = omitUndefinedFields({
+      ...template,
+      isPaused: false,
+      createdAt: Date.now(),
+    } as Record<string, unknown>)
+
+    const created = await addDoc(recurringTemplateCollection, templatePayload)
+    return created.id
+  }, [recurringTemplateCollection])
+
+  const updateRecurringTemplate = useCallback(async (
+    id: string,
+    updates: Partial<Omit<RecurringTransactionTemplate, "id" | "createdAt">>
+  ) => {
+    if (!user) {
+      throw new Error("You must be signed in to update a recurring transaction")
+    }
+
+    const templateRef = doc(db, "users", user.uid, "recurringTemplates", id)
+    await updateDoc(templateRef, omitUndefinedFields(updates as Record<string, unknown>))
+  }, [user])
+
+  const toggleRecurringTemplatePaused = useCallback(async (id: string, paused: boolean) => {
+    if (!user) {
+      throw new Error("You must be signed in to update a recurring transaction")
+    }
+
+    const templateRef = doc(db, "users", user.uid, "recurringTemplates", id)
+    await updateDoc(templateRef, { isPaused: paused })
+  }, [user])
+
+  const deleteRecurringTemplate = useCallback(async (id: string) => {
+    if (!user) {
+      throw new Error("You must be signed in to delete a recurring transaction")
+    }
+
+    const templateRef = doc(db, "users", user.uid, "recurringTemplates", id)
+    await deleteDoc(templateRef)
+  }, [user])
+
+  const runRecurringTemplateNow = useCallback(async (id: string) => {
+    if (!user || !transactionCollection) {
+      throw new Error("You must be signed in to run a recurring transaction")
+    }
+
+    const template = recurringTemplates.find((item) => item.id === id)
+    if (!template) {
+      throw new Error("Recurring transaction not found")
+    }
+
+    const runDate = template.nextRunDate
+    const existsAlready = transactions.some(
+      (item) => item.recurringTemplateId === template.id && item.date === runDate
+    )
+
+    const batch = writeBatch(db)
+    if (!existsAlready) {
+      const newTransactionRef = doc(transactionCollection)
+      batch.set(newTransactionRef, omitUndefinedFields({
+        amount: template.amount,
+        type: template.type,
+        category: template.category,
+        customCategory: template.customCategory || "",
+        walletId: template.walletId,
+        date: runDate,
+        createdAt: Date.now(),
+        description: template.description || template.name,
+        recurringTemplateId: template.id,
+        isRecurringInstance: true,
+      } as Record<string, unknown>))
+    }
+
+    const templateRef = doc(db, "users", user.uid, "recurringTemplates", template.id)
+    const nextRunDate = shiftDateByFrequency(runDate, template.frequency)
+    batch.update(templateRef, {
+      nextRunDate,
+      isPaused: Boolean(template.endDate && nextRunDate > template.endDate),
+      lastGeneratedAt: Date.now(),
+    })
+
+    await batch.commit()
+  }, [user, transactionCollection, recurringTemplates, transactions])
+
+  useEffect(() => {
+    if (!user || !transactionCollection || !recurringTemplateCollection) {
+      return
+    }
+
+    if (recurringTemplates.length === 0 || isGeneratingRecurringRef.current) {
+      return
+    }
+
+    const runGeneration = async () => {
+      isGeneratingRecurringRef.current = true
+
+      try {
+        const today = toDateKey(new Date())
+        const activeTemplates = recurringTemplates.filter((template) => {
+          return !template.isPaused && template.nextRunDate <= today
+        })
+
+        if (activeTemplates.length === 0) {
+          return
+        }
+
+        const pendingTransactionsSnapshot = await getDocs(query(transactionCollection, orderBy("date", "desc")))
+        const knownKeys = new Set<string>()
+        pendingTransactionsSnapshot.docs.forEach((transactionDoc) => {
+          const transactionData = transactionDoc.data() as Transaction
+          if (transactionData.recurringTemplateId && transactionData.date) {
+            knownKeys.add(`${transactionData.recurringTemplateId}|${transactionData.date}`)
+          }
+        })
+
+        const batch = writeBatch(db)
+        let hasAnyChange = false
+
+        activeTemplates.forEach((template) => {
+          let cursorDate = template.nextRunDate
+          let loops = 0
+
+          while (cursorDate <= today && loops < 24) {
+            const transactionKey = `${template.id}|${cursorDate}`
+
+            if (!knownKeys.has(transactionKey)) {
+              const generatedRef = doc(transactionCollection)
+              batch.set(generatedRef, omitUndefinedFields({
+                amount: template.amount,
+                type: template.type,
+                category: template.category,
+                customCategory: template.customCategory || "",
+                walletId: template.walletId,
+                date: cursorDate,
+                createdAt: Date.now() + loops,
+                description: template.description || template.name,
+                recurringTemplateId: template.id,
+                isRecurringInstance: true,
+              } as Record<string, unknown>))
+
+              knownKeys.add(transactionKey)
+              hasAnyChange = true
+            }
+
+            const nextDate = shiftDateByFrequency(cursorDate, template.frequency)
+            const shouldPause = Boolean(template.endDate && nextDate > template.endDate)
+
+            cursorDate = nextDate
+            loops += 1
+
+            if (shouldPause) {
+              break
+            }
+          }
+
+          if (cursorDate !== template.nextRunDate) {
+            const templateRef = doc(db, "users", user.uid, "recurringTemplates", template.id)
+            batch.update(templateRef, {
+              nextRunDate: cursorDate,
+              isPaused: Boolean(template.endDate && cursorDate > template.endDate),
+              lastGeneratedAt: Date.now(),
+            })
+            hasAnyChange = true
+          }
+        })
+
+        if (hasAnyChange) {
+          await batch.commit()
+        }
+      } catch (error) {
+        console.error("Error generating recurring transactions:", error)
+      } finally {
+        isGeneratingRecurringRef.current = false
+      }
+    }
+
+    void runGeneration()
+  }, [user, transactionCollection, recurringTemplateCollection, recurringTemplates])
 
   const addDebt = useCallback(async (debt: Omit<Debt, "id" | "createdAt" | "paidAmount" | "status">) => {
     if (!debtCollection) {
@@ -724,6 +993,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         chatMessages,
         debts,
         savingGoals,
+        recurringTemplates,
         addTransaction,
         updateTransaction,
         deleteTransaction,
@@ -741,6 +1011,11 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         deleteSavingGoal,
         recordGoalContribution,
         recordGoalWithdrawal,
+        addRecurringTemplate,
+        updateRecurringTemplate,
+        toggleRecurringTemplatePaused,
+        deleteRecurringTemplate,
+        runRecurringTemplateNow,
         totalBalance,
         totalIncome,
         totalExpenses,
