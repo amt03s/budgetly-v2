@@ -19,6 +19,7 @@ import { useCurrency } from "@/lib/currency-context"
 import { getCurrencyConfig } from "@/lib/currency"
 import { Button } from "@/components/ui/button"
 import { CurrencyPickerDialog } from "./currency-picker-dialog"
+import { ThemeToggle } from "./theme-toggle"
 import { useState } from "react"
 import { Spinner } from "@/components/ui/spinner"
 
@@ -102,15 +103,18 @@ export function AppSidebar() {
               </span>
             )}
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full gap-2"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </Button>
+          <div className="flex gap-2">
+            <ThemeToggle />
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 gap-2"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </Button>
+          </div>
         </div>
       </div>
 

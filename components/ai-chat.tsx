@@ -213,7 +213,11 @@ export function AIChat() {
           </div>
         </ScrollArea>
 
-        <form onSubmit={handleSubmit} className="mt-4 flex shrink-0 gap-2">
+        <p className="mt-3 shrink-0 text-center text-xs text-muted-foreground">
+          Conversations are not saved and will be lost when you leave this page.
+        </p>
+
+        <form onSubmit={handleSubmit} className="mt-2 flex shrink-0 gap-2">
           <Input
             id="budget-chat-input"
             name="budgetChatInput"

@@ -9,13 +9,37 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field"
 import { Wallet, ArrowLeft } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
+
+function GoogleIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4">
+      <path
+        d="M21.35 11.1H12v2.92h5.36a4.83 4.83 0 0 1-2.1 3.17v2.63h3.4c1.98-1.82 3.12-4.5 3.12-7.7 0-.69-.06-1.36-.18-2.02Z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 22c2.7 0 4.97-.9 6.62-2.45l-3.4-2.63c-.94.63-2.15 1-3.22 1-2.48 0-4.58-1.67-5.33-3.91H3.17v2.72A10 10 0 0 0 12 22Z"
+        fill="#34A853"
+      />
+      <path
+        d="M6.67 14.01a5.99 5.99 0 0 1 0-3.82V7.47H3.17a10 10 0 0 0 0 9.26l3.5-2.72Z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 6.08c1.47 0 2.8.5 3.85 1.5l2.88-2.88C16.96 3.05 14.7 2 12 2A10 10 0 0 0 3.17 7.47l3.5 2.72c.75-2.24 2.85-3.91 5.33-3.91Z"
+        fill="#EA4335"
+      />
+    </svg>
+  )
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn, signInWithGoogle } = useAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,15 +58,35 @@ export default function LoginPage() {
     }
   }
 
+  const handleGoogleSignIn = async () => {
+    setError("")
+    setIsLoading(true)
+
+    try {
+      await signInWithGoogle({ allowCreate: false })
+      router.push("/dashboard")
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to sign in with Google"
+      setError(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 px-4">
-      <Link
-        href="/"
-        className="absolute left-4 top-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors md:left-8 md:top-8"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to home
-      </Link>
+      <div className="absolute left-4 top-4 flex items-center gap-2 md:left-8 md:top-8">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to home
+        </Link>
+      </div>
+      <div className="absolute right-4 top-4 md:right-8 md:top-8">
+        <ThemeToggle />
+      </div>
 
       <div className="mb-8 flex items-center gap-2">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-foreground">
@@ -88,6 +132,14 @@ export default function LoginPage() {
               </Field>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Signing in..." : "Sign in"}
+              </Button>
+              <div className="relative text-center text-xs uppercase text-muted-foreground">
+                <span className="bg-background px-2">Or</span>
+                <div className="absolute left-0 right-0 top-1/2 -z-10 border-t" />
+              </div>
+              <Button type="button" variant="outline" className="w-full -mt-2" onClick={handleGoogleSignIn} disabled={isLoading}>
+                <GoogleIcon />
+                Log in with Google
               </Button>
             </FieldGroup>
           </form>

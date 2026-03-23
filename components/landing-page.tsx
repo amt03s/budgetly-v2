@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, PieChart, Wallet, TrendingUp, MessageSquare } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function LandingPage() {
   return (
@@ -25,6 +26,7 @@ export function LandingPage() {
             </Link>
           </nav>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Link href="/login">
               <Button variant="ghost" size="sm">Log in</Button>
             </Link>

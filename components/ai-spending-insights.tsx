@@ -106,7 +106,7 @@ export function AiSpendingInsights() {
                   }}
                 />
                 <Line type="monotone" dataKey="baseline" name="Baseline" stroke="#8b8b8b" strokeDasharray="4 4" dot={false} />
-                <Line type="monotone" dataKey="amount" name="Actual" stroke="#000000" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="amount" name="Actual" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           )}

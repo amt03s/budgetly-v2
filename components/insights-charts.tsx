@@ -177,17 +177,17 @@ export function InsightsCharts() {
                   type="monotone"
                   dataKey="income"
                   name="Income"
-                  stroke="#000000"
+                  stroke="#16a34a"
                   strokeWidth={2}
-                  dot={{ fill: "#000000", r: 4 }}
+                  dot={{ fill: "#16a34a", r: 4 }}
                 />
                 <Line
                   type="monotone"
                   dataKey="expenses"
                   name="Expenses"
-                  stroke="#888888"
+                  stroke="#dc2626"
                   strokeWidth={2}
-                  dot={{ fill: "#888888", r: 4 }}
+                  dot={{ fill: "#dc2626", r: 4 }}
                 />
               </LineChart>
             </ResponsiveContainer>

@@ -5,12 +5,17 @@ import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
 import { BudgetProvider } from '@/lib/budget-context'
 import { CurrencyProvider } from '@/lib/currency-context'
+import { ThemeProvider } from '@/components/theme-provider'
 
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans" })
 
 export const metadata: Metadata = {
-  title: 'Budgetly - Personal Finance Tracker',
+  title: 'Budgetly',
   description: 'Track your income, expenses, and budgets with ease',
+  icons: {
+    icon: '/wallet-favicon.svg',
+    apple: '/apple-icon.png',
+  },
 }
 
 export default function RootLayout({
@@ -19,15 +24,17 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${dmSans.variable} font-sans antialiased`}>
-        <AuthProvider>
-          <CurrencyProvider>
-            <BudgetProvider>
-              {children}
-            </BudgetProvider>
-          </CurrencyProvider>
-        </AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AuthProvider>
+            <CurrencyProvider>
+              <BudgetProvider>
+                {children}
+              </BudgetProvider>
+            </CurrencyProvider>
+          </AuthProvider>
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>

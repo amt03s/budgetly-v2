@@ -146,9 +146,9 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Transactions</CardTitle>
-          <Button onClick={handleAdd} size="sm">
+          <Button onClick={handleAdd} size="sm" className="w-full sm:w-auto">
             <Plus className="mr-1 h-4 w-4" />
             Add
           </Button>
@@ -156,7 +156,7 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
         <CardContent>
           {/* Search & filters */}
           <div className="mb-4 flex flex-col gap-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -167,15 +167,15 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
                 />
               </div>
               {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="shrink-0">
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full shrink-0 sm:w-auto">
                   <X className="mr-1 h-4 w-4" />
                   Clear
                 </Button>
               )}
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap">
               <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as typeof typeFilter)}>
-                <SelectTrigger className="w-[130px]">
+                <SelectTrigger className="w-full lg:w-[130px]">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -186,7 +186,7 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
               </Select>
 
               <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as typeof categoryFilter)}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-full lg:w-[160px]">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -201,7 +201,7 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
 
               {!walletId && (
                 <Select value={walletFilter} onValueChange={(v) => setWalletFilter(v)}>
-                  <SelectTrigger className="w-[150px]">
+                  <SelectTrigger className="w-full lg:w-[150px]">
                     <SelectValue placeholder="Wallet" />
                   </SelectTrigger>
                   <SelectContent>
@@ -219,7 +219,7 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="w-[150px]"
+                className="w-full lg:w-[150px]"
                 title="From date"
                 placeholder="From"
               />
@@ -227,7 +227,7 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="w-[150px]"
+                className="w-full lg:w-[150px]"
                 title="To date"
                 placeholder="To"
               />
@@ -241,78 +241,149 @@ export function TransactionsList({ walletId }: TransactionsListProps) {
                 : "No transactions yet. Add your first transaction to get started."}
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  {!walletId && <TableHead>Wallet</TableHead>}
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="w-[100px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="flex flex-col gap-3 md:hidden">
                 {filteredTransactions.map((transaction) => {
                   const wallet = getWalletById(transaction.walletId)
                   return (
-                    <TableRow key={transaction.id}>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(transaction.date)}
-                      </TableCell>
-                      <TableCell>
-                        {transaction.description || "-"}
-                      </TableCell>
-                      <TableCell>{getTransactionCategoryLabel(transaction)}</TableCell>
-                      {!walletId && <TableCell>{wallet?.name || "-"}</TableCell>}
-                      <TableCell
-                        className={cn(
-                          "text-right font-medium",
-                          transaction.type === "income"
-                            ? "text-foreground"
-                            : "text-muted-foreground"
-                        )}
-                      >
-                        {transaction.type === "income" ? "+" : "-"}
-                        {formatAmount(transaction.amount)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => handleEdit(transaction)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon-sm">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. The transaction of {formatAmount(transaction.amount)} on {formatDate(transaction.date)} will be permanently removed.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(transaction.id)}>
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                    <div key={transaction.id} className="rounded-lg border p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">
+                            {transaction.description || "-"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(transaction.date)}
+                          </p>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                        <p
+                          className={cn(
+                            "shrink-0 text-sm font-medium",
+                            transaction.type === "income"
+                              ? "text-foreground"
+                              : "text-muted-foreground"
+                          )}
+                        >
+                          {transaction.type === "income" ? "+" : "-"}
+                          {formatAmount(transaction.amount)}
+                        </p>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span>{getTransactionCategoryLabel(transaction)}</span>
+                        {!walletId && <span>• {wallet?.name || "-"}</span>}
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => handleEdit(transaction)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon-sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. The transaction of {formatAmount(transaction.amount)} on {formatDate(transaction.date)} will be permanently removed.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(transaction.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
                   )
                 })}
-              </TableBody>
-            </Table>
+              </div>
+
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Category</TableHead>
+                      {!walletId && <TableHead>Wallet</TableHead>}
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="w-[100px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTransactions.map((transaction) => {
+                      const wallet = getWalletById(transaction.walletId)
+                      return (
+                        <TableRow key={transaction.id}>
+                          <TableCell className="text-muted-foreground">
+                            {formatDate(transaction.date)}
+                          </TableCell>
+                          <TableCell>
+                            {transaction.description || "-"}
+                          </TableCell>
+                          <TableCell>{getTransactionCategoryLabel(transaction)}</TableCell>
+                          {!walletId && <TableCell>{wallet?.name || "-"}</TableCell>}
+                          <TableCell
+                            className={cn(
+                              "text-right font-medium",
+                              transaction.type === "income"
+                                ? "text-foreground"
+                                : "text-muted-foreground"
+                            )}
+                          >
+                            {transaction.type === "income" ? "+" : "-"}
+                            {formatAmount(transaction.amount)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => handleEdit(transaction)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon-sm">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete this transaction?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This action cannot be undone. The transaction of {formatAmount(transaction.amount)} on {formatDate(transaction.date)} will be permanently removed.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(transaction.id)}>
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
