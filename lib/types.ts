@@ -62,6 +62,20 @@ export interface Debt {
   status: DebtStatus
 }
 
+export type SavingGoalStatus = "active" | "completed"
+
+export interface SavingGoal {
+  id: string
+  name: string
+  targetAmount: number
+  savedAmount: number
+  walletId: string
+  targetDate?: string
+  note?: string
+  createdAt: number
+  status: SavingGoalStatus
+}
+
 export const EXPENSE_CATEGORIES: Category[] = [
   "food",
   "transport",

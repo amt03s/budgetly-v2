@@ -13,7 +13,7 @@ import {
   orderBy,
 } from "firebase/firestore"
 import { db } from "./firebase"
-import type { Transaction, Wallet, ChatMessage, Debt } from "./types"
+import type { Transaction, Wallet, ChatMessage, Debt, SavingGoal } from "./types"
 import { useAuth } from "./auth-context"
 
 interface BudgetContextType {
@@ -21,6 +21,7 @@ interface BudgetContextType {
   wallets: Wallet[]
   chatMessages: ChatMessage[]
   debts: Debt[]
+  savingGoals: SavingGoal[]
   addTransaction: (transaction: Omit<Transaction, "id">) => Promise<void>
   updateTransaction: (id: string, transaction: Partial<Transaction>) => Promise<void>
   deleteTransaction: (id: string) => Promise<void>
@@ -39,6 +40,11 @@ interface BudgetContextType {
   updateDebt: (id: string, updates: Partial<Omit<Debt, "id">>) => Promise<void>
   deleteDebt: (id: string) => Promise<void>
   recordDebtPayment: (id: string, paymentAmount: number, walletId: string, date: string) => Promise<void>
+  addSavingGoal: (goal: Omit<SavingGoal, "id" | "savedAmount" | "createdAt" | "status">) => Promise<void>
+  updateSavingGoal: (id: string, updates: Partial<Omit<SavingGoal, "id">>) => Promise<void>
+  deleteSavingGoal: (id: string) => Promise<void>
+  recordGoalContribution: (id: string, amount: number, date: string) => Promise<void>
+  recordGoalWithdrawal: (id: string, amount: number, date: string) => Promise<void>
   totalBalance: number
   totalIncome: number
   totalExpenses: number
@@ -63,6 +69,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   const [wallets, setWallets] = useState<Wallet[]>([])
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [debts, setDebts] = useState<Debt[]>([])
+  const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   const walletCollection = useMemo(() => {
@@ -89,6 +96,14 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     return collection(db, "users", user.uid, "debts")
   }, [user])
 
+  const goalCollection = useMemo(() => {
+    if (!user) {
+      return null
+    }
+
+    return collection(db, "users", user.uid, "savingGoals")
+  }, [user])
+
   // Subscribe to wallets collection
   useEffect(() => {
     if (isAuthLoading) {
@@ -100,6 +115,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       setTransactions([])
       setChatMessages([])
       setDebts([])
+      setSavingGoals([])
       setIsLoading(false)
       return
     }
@@ -196,6 +212,35 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
 
     return () => unsubscribe()
   }, [isAuthLoading, debtCollection])
+
+  // Subscribe to savings goals collection
+  useEffect(() => {
+    if (isAuthLoading) {
+      return
+    }
+
+    if (!goalCollection) {
+      setSavingGoals([])
+      return
+    }
+
+    const goalsQuery = query(goalCollection, orderBy("createdAt", "desc"))
+    const unsubscribe = onSnapshot(
+      goalsQuery,
+      (snapshot) => {
+        const goalsData: SavingGoal[] = snapshot.docs.map((goalDoc) => ({
+          id: goalDoc.id,
+          ...goalDoc.data(),
+        })) as SavingGoal[]
+        setSavingGoals(goalsData)
+      },
+      (error) => {
+        console.error("Error fetching saving goals:", error)
+      }
+    )
+
+    return () => unsubscribe()
+  }, [isAuthLoading, goalCollection])
 
   // Calculate wallet balances from transactions
   const walletsWithBalances = useMemo(() => {
@@ -332,10 +377,16 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     try {
       // Delete all transactions associated with this wallet
       const walletTransactions = transactions.filter((t) => t.walletId === id)
+      const walletGoals = savingGoals.filter((goal) => goal.walletId === id)
       await Promise.all(
-        walletTransactions.map((t) =>
-          deleteDoc(doc(db, "users", user.uid, "transactions", t.id))
-        )
+        [
+          ...walletTransactions.map((t) =>
+            deleteDoc(doc(db, "users", user.uid, "transactions", t.id))
+          ),
+          ...walletGoals.map((goal) =>
+            deleteDoc(doc(db, "users", user.uid, "savingGoals", goal.id))
+          ),
+        ]
       )
       // Delete the wallet
       const walletRef = doc(db, "users", user.uid, "wallets", id)
@@ -344,7 +395,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       console.error("Error deleting wallet:", error)
       throw error
     }
-  }, [transactions, user])
+  }, [transactions, savingGoals, user])
 
   const transferBetweenWallets = useCallback(async (
     params: {
@@ -476,6 +527,151 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     ])
   }, [user, transactionCollection, debts])
 
+  const addSavingGoal = useCallback(async (goal: Omit<SavingGoal, "id" | "savedAmount" | "createdAt" | "status">) => {
+    if (!goalCollection) {
+      throw new Error("You must be signed in to add a saving goal")
+    }
+
+    await addDoc(
+      goalCollection,
+      omitUndefinedFields({
+        ...goal,
+        savedAmount: 0,
+        status: "active",
+        createdAt: Date.now(),
+      } as Record<string, unknown>)
+    )
+  }, [goalCollection])
+
+  const updateSavingGoal = useCallback(async (id: string, updates: Partial<Omit<SavingGoal, "id">>) => {
+    if (!user) {
+      throw new Error("You must be signed in to update a saving goal")
+    }
+
+    const existingGoal = savingGoals.find((goal) => goal.id === id)
+    const nextTarget =
+      typeof updates.targetAmount === "number"
+        ? updates.targetAmount
+        : existingGoal?.targetAmount
+    const nextSaved =
+      typeof updates.savedAmount === "number"
+        ? updates.savedAmount
+        : existingGoal?.savedAmount
+
+    const payload = omitUndefinedFields({
+      ...updates,
+      ...(typeof nextSaved === "number" && typeof nextTarget === "number"
+        ? { status: nextSaved >= nextTarget ? "completed" : "active" }
+        : {}),
+    } as Record<string, unknown>)
+
+    const goalRef = doc(db, "users", user.uid, "savingGoals", id)
+    await updateDoc(goalRef, payload)
+  }, [user, savingGoals])
+
+  const deleteSavingGoal = useCallback(async (id: string) => {
+    if (!user) {
+      throw new Error("You must be signed in to delete a saving goal")
+    }
+
+    const goalRef = doc(db, "users", user.uid, "savingGoals", id)
+    await deleteDoc(goalRef)
+  }, [user])
+
+  const recordGoalContribution = useCallback(async (id: string, amount: number, date: string) => {
+    if (!user || !transactionCollection) {
+      throw new Error("You must be signed in to record goal contributions")
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error("Contribution amount must be greater than zero")
+    }
+
+    const goal = savingGoals.find((item) => item.id === id)
+    if (!goal) {
+      throw new Error("Saving goal not found")
+    }
+
+    const wallet = walletsWithBalances.find((item) => item.id === goal.walletId)
+    if (!wallet) {
+      throw new Error("Wallet for this saving goal was not found")
+    }
+
+    if (wallet.balance <= 0) {
+      throw new Error("Selected wallet has no available balance")
+    }
+
+    const remaining = Math.max(goal.targetAmount - goal.savedAmount, 0)
+    const actualAmount = Math.min(amount, remaining, wallet.balance)
+    if (actualAmount <= 0) {
+      throw new Error("This saving goal is already completed")
+    }
+
+    const nextSavedAmount = goal.savedAmount + actualAmount
+    const goalRef = doc(db, "users", user.uid, "savingGoals", id)
+
+    const transactionPayload = omitUndefinedFields({
+      amount: actualAmount,
+      type: "expense" as const,
+      category: "savings" as const,
+      customCategory: "Saving Goal",
+      walletId: goal.walletId,
+      date,
+      createdAt: Date.now(),
+      description: `Contribution to ${goal.name}`,
+    } as Record<string, unknown>)
+
+    await Promise.all([
+      updateDoc(goalRef, {
+        savedAmount: nextSavedAmount,
+        status: nextSavedAmount >= goal.targetAmount ? "completed" : "active",
+      }),
+      addDoc(transactionCollection, transactionPayload),
+    ])
+  }, [user, transactionCollection, savingGoals, walletsWithBalances])
+
+  const recordGoalWithdrawal = useCallback(async (id: string, amount: number, date: string) => {
+    if (!user || !transactionCollection) {
+      throw new Error("You must be signed in to record goal withdrawals")
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error("Withdrawal amount must be greater than zero")
+    }
+
+    const goal = savingGoals.find((item) => item.id === id)
+    if (!goal) {
+      throw new Error("Saving goal not found")
+    }
+
+    const actualAmount = Math.min(amount, goal.savedAmount)
+    if (actualAmount <= 0) {
+      throw new Error("There is no saved amount to withdraw")
+    }
+
+    const nextSavedAmount = goal.savedAmount - actualAmount
+    const goalRef = doc(db, "users", user.uid, "savingGoals", id)
+
+    const transactionPayload = omitUndefinedFields({
+      amount: actualAmount,
+      type: "income" as const,
+      category: "savings" as const,
+      customCategory: "Saving Goal Withdrawal",
+      walletId: goal.walletId,
+      date,
+      createdAt: Date.now(),
+      description: `Withdrawal from ${goal.name}`,
+    } as Record<string, unknown>)
+
+    await Promise.all([
+      updateDoc(goalRef, {
+        savedAmount: nextSavedAmount,
+        status: nextSavedAmount >= goal.targetAmount ? "completed" : "active",
+      }),
+      addDoc(transactionCollection, transactionPayload),
+    ])
+  }, [user, transactionCollection, savingGoals])
+
   const addChatMessage = useCallback((message: Omit<ChatMessage, "id" | "timestamp">) => {
     const newMessage: ChatMessage = {
       ...message,
@@ -487,10 +683,10 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
 
   const { totalBalance, totalIncome, totalExpenses, totalDebt, totalReceivable } = useMemo(() => {
     const income = transactions
-      .filter((t) => t.type === "income")
+      .filter((t) => t.type === "income" && !t.transferId)
       .reduce((sum, t) => sum + t.amount, 0)
     const expenses = transactions
-      .filter((t) => t.type === "expense")
+      .filter((t) => t.type === "expense" && !t.transferId)
       .reduce((sum, t) => sum + t.amount, 0)
     const balance = walletsWithBalances.reduce((sum, wallet) => sum + wallet.balance, 0)
     const activeDebts = debts.filter((d) => d.status === "active")
@@ -527,6 +723,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         wallets: walletsWithBalances,
         chatMessages,
         debts,
+        savingGoals,
         addTransaction,
         updateTransaction,
         deleteTransaction,
@@ -539,6 +736,11 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         updateDebt,
         deleteDebt,
         recordDebtPayment,
+        addSavingGoal,
+        updateSavingGoal,
+        deleteSavingGoal,
+        recordGoalContribution,
+        recordGoalWithdrawal,
         totalBalance,
         totalIncome,
         totalExpenses,

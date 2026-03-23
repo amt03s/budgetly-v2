@@ -11,6 +11,7 @@ import {
   LogOut,
   Globe,
   CreditCard,
+  PiggyBank,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
@@ -25,9 +26,10 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/dashboard/wallets", label: "Wallets", icon: Wallet },
+  { href: "/dashboard/goals", label: "Saving Goals", icon: PiggyBank },
   { href: "/dashboard/debts", label: "Debts", icon: CreditCard },
   { href: "/dashboard/insights", label: "Insights", icon: PieChart },
-  { href: "/dashboard/chat", label: "AI Chat", icon: MessageSquare },
+  { href: "/dashboard/chat", label: "Budge", icon: MessageSquare },
 ]
 
 export function AppSidebar() {

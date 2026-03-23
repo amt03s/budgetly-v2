@@ -91,8 +91,8 @@ export function LandingPage() {
             />
             <FeatureCard
               icon={<MessageSquare className="h-6 w-6" />}
-              title="AI Assistant"
-              description="Get personalized financial advice and insights from our AI-powered chatbot."
+              title="Budge"
+              description="Get personalized financial advice and insights from Budge, your AI budgeting guide."
             />
           </div>
         </div>

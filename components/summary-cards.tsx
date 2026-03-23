@@ -11,73 +11,53 @@ export function SummaryCards() {
 
   return (
     <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-5">
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Balance</p>
-              <p className="text-2xl font-bold">{formatAmount(totalBalance)}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <Wallet className="h-6 w-6 text-foreground" />
-            </div>
+      <Card className="relative">
+        <CardContent className="flex flex-col gap-3 pt-6 pb-5">
+          <div className="absolute right-3 bottom-3 flex h-6 w-6 items-center justify-center rounded-md bg-muted">
+            <Wallet className="h-3 w-3 text-foreground" />
           </div>
+          <p className="text-sm font-medium text-muted-foreground">Total Balance</p>
+          <p className="text-2xl font-bold tracking-tight">{formatAmount(totalBalance)}</p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Income</p>
-              <p className="text-2xl font-bold">{formatAmount(totalIncome)}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <TrendingUp className="h-6 w-6 text-foreground" />
-            </div>
+      <Card className="relative">
+        <CardContent className="flex flex-col gap-3 pt-6 pb-5">
+          <div className="absolute right-3 bottom-3 flex h-6 w-6 items-center justify-center rounded-md bg-muted">
+            <TrendingUp className="h-3 w-3 text-foreground" />
           </div>
+          <p className="text-sm font-medium text-muted-foreground">Total Income</p>
+          <p className="text-2xl font-bold tracking-tight">{formatAmount(totalIncome)}</p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Expenses</p>
-              <p className="text-2xl font-bold">{formatAmount(totalExpenses)}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <TrendingDown className="h-6 w-6 text-foreground" />
-            </div>
+      <Card className="relative">
+        <CardContent className="flex flex-col gap-3 pt-6 pb-5">
+          <div className="absolute right-3 bottom-3 flex h-6 w-6 items-center justify-center rounded-md bg-muted">
+            <TrendingDown className="h-3 w-3 text-foreground" />
           </div>
+          <p className="text-sm font-medium text-muted-foreground">Total Expenses</p>
+          <p className="text-2xl font-bold tracking-tight">{formatAmount(totalExpenses)}</p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Debt</p>
-              <p className="text-2xl font-bold text-destructive">{formatAmount(totalDebt)}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <CreditCard className="h-6 w-6 text-destructive" />
-            </div>
+      <Card className="relative">
+        <CardContent className="flex flex-col gap-3 pt-6 pb-5">
+          <div className="absolute right-3 bottom-3 flex h-6 w-6 items-center justify-center rounded-md bg-muted">
+            <CreditCard className="h-3 w-3 text-destructive" />
           </div>
+          <p className="text-sm font-medium text-muted-foreground">Total Debt</p>
+          <p className="text-2xl font-bold tracking-tight text-destructive">{formatAmount(totalDebt)}</p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Receivables</p>
-              <p className="text-2xl font-bold text-green-600">{formatAmount(totalReceivable)}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <HandCoins className="h-6 w-6 text-green-600" />
-            </div>
+      <Card className="relative">
+        <CardContent className="flex flex-col gap-3 pt-6 pb-5">
+          <div className="absolute right-3 bottom-3 flex h-6 w-6 items-center justify-center rounded-md bg-muted">
+            <HandCoins className="h-3 w-3 text-green-600" />
           </div>
+          <p className="text-sm font-medium text-muted-foreground">Receivables</p>
+          <p className="text-2xl font-bold tracking-tight text-green-600">{formatAmount(totalReceivable)}</p>
         </CardContent>
       </Card>
     </div>

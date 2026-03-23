@@ -29,7 +29,7 @@ export function AIChat() {
   const categorySpending = useMemo(() => {
     const spending: Record<string, number> = {}
     transactions
-      .filter((t) => t.type === "expense")
+      .filter((t) => t.type === "expense" && !t.transferId)
       .forEach((t) => {
         const label = getTransactionCategoryLabel(t)
         spending[label] = (spending[label] || 0) + t.amount
@@ -141,7 +141,7 @@ export function AIChat() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bot className="h-5 w-5" />
-          Budget Assistant
+          Budge
         </CardTitle>
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -151,7 +151,7 @@ export function AIChat() {
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Bot className="mb-4 h-12 w-12 text-muted-foreground" />
                 <p className="mb-6 text-sm text-muted-foreground">
-                  Ask me about your spending, income, or budgeting tips!
+                  I&apos;m Budge. Ask me about your spending, income, savings goals, or budgeting habits.
                 </p>
                 <div className="grid gap-2 w-full max-w-sm">
                   {suggestedPrompts.map((prompt) => (
@@ -219,7 +219,7 @@ export function AIChat() {
             name="budgetChatInput"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Ask about your finances..."
+            placeholder="Ask Budge about your finances..."
             disabled={isLoading}
           />
           <Button type="submit" size="icon" disabled={isLoading || !inputValue.trim()}>

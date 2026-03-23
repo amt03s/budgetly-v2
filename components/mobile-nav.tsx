@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   Wallet,
+  PiggyBank,
   PieChart,
   MessageSquare,
 } from "lucide-react"
@@ -15,8 +16,9 @@ const navItems = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
   { href: "/dashboard/transactions", label: "Txns", icon: ArrowLeftRight },
   { href: "/dashboard/wallets", label: "Wallets", icon: Wallet },
+  { href: "/dashboard/goals", label: "Goals", icon: PiggyBank },
   { href: "/dashboard/insights", label: "Insights", icon: PieChart },
-  { href: "/dashboard/chat", label: "Chat", icon: MessageSquare },
+  { href: "/dashboard/chat", label: "Budge", icon: MessageSquare },
 ]
 
 export function MobileNav() {

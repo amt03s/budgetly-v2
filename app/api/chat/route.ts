@@ -18,7 +18,7 @@ export async function POST(req: Request) {
 
   const fmt = (n: number) => formatCurrencyWithCode(n, currency)
 
-  const systemPrompt = `You are a helpful personal finance assistant for Budgetly, a budgeting app. 
+  const systemPrompt = `You are Budge, a helpful personal finance assistant for Budgetly, a budgeting app. 
 You help users understand their spending habits, provide budgeting advice, and answer questions about their finances.
 
 Current user financial data:

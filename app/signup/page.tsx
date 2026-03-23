@@ -11,7 +11,7 @@ import { FieldGroup, Field, FieldLabel } from "@/components/ui/field"
 import { Wallet, ArrowLeft } from "lucide-react"
 
 export default function SignupPage() {
-  const [name, setName] = useState("")
+  const [nickname, setNickname] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -23,6 +23,13 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+
+    const trimmedNickname = nickname.trim()
+
+    if (!trimmedNickname) {
+      setError("Enter a nickname for your dashboard greeting")
+      return
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match")
@@ -37,7 +44,7 @@ export default function SignupPage() {
     setIsLoading(true)
 
     try {
-      await signUp(email, password, name)
+      await signUp(email, password, trimmedNickname)
       router.push("/dashboard")
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to create account"
@@ -67,7 +74,7 @@ export default function SignupPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Create your account</CardTitle>
-          <CardDescription>Start your journey to financial freedom</CardDescription>
+          <CardDescription>Start your journey to financial freedom with the name shown on your dashboard</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
@@ -78,13 +85,13 @@ export default function SignupPage() {
                 </div>
               )}
               <Field>
-                <FieldLabel htmlFor="name">Full name</FieldLabel>
+                <FieldLabel htmlFor="nickname">Nickname</FieldLabel>
                 <Input
-                  id="name"
+                  id="nickname"
                   type="text"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  placeholder="How should we greet you?"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
                   required
                 />
               </Field>

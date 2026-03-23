@@ -35,7 +35,7 @@ export function InsightsCharts() {
   const { formatAmount } = useCurrency()
 
   const categoryData = useMemo(() => {
-    const expenses = transactions.filter((t) => t.type === "expense")
+    const expenses = transactions.filter((t) => t.type === "expense" && !t.transferId)
     const categoryTotals: Record<string, number> = {}
 
     expenses.forEach((t) => {
@@ -52,6 +52,10 @@ export function InsightsCharts() {
     const dailyTotals: Record<string, { date: string; income: number; expenses: number }> = {}
 
     transactions.forEach((t) => {
+      if (t.transferId) {
+        return
+      }
+
       if (!dailyTotals[t.date]) {
         dailyTotals[t.date] = { date: t.date, income: 0, expenses: 0 }
       }

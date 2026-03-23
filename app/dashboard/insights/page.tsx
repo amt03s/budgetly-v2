@@ -1,4 +1,5 @@
 import { InsightsCharts } from "@/components/insights-charts"
+import { AiSpendingInsights } from "@/components/ai-spending-insights"
 
 export default function InsightsPage() {
   return (
@@ -9,6 +10,8 @@ export default function InsightsPage() {
           Visualize your financial data
         </p>
       </div>
+
+      <AiSpendingInsights />
 
       <InsightsCharts />
     </div>
