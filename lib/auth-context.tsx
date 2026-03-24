@@ -16,6 +16,7 @@ import {
 } from "firebase/auth"
 import { FirebaseError } from "firebase/app"
 import { auth } from "./firebase"
+import { validatePasswordPolicy } from "./password-policy"
 
 interface AuthContextType {
   user: User | null
@@ -43,7 +44,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signUp = async (email: string, password: string, name: string) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password)
+    const normalizedEmail = email.trim().toLowerCase()
+    const passwordValidation = validatePasswordPolicy(password, {
+      email: normalizedEmail,
+      name,
+    })
+
+    if (!passwordValidation.isValid) {
+      throw new Error(passwordValidation.error)
+    }
+
+    const result = await createUserWithEmailAndPassword(auth, normalizedEmail, password)
     await updateProfile(result.user, { displayName: name })
   }
 

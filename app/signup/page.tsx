@@ -5,11 +5,14 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field"
-import { Wallet, ArrowLeft } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group"
+import { Progress } from "@/components/ui/progress"
+import { Wallet, ArrowLeft, Check, Circle, Eye, EyeOff } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { getPasswordStrength, getPasswordValidationChecks, validatePasswordPolicy } from "@/lib/password-policy"
 
 function GoogleIcon() {
   return (
@@ -40,17 +43,32 @@ export default function SignupPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isPasswordFieldFocused, setIsPasswordFieldFocused] = useState(false)
   const [isGoogleSignupPendingNickname, setIsGoogleSignupPendingNickname] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const { signUp, signInWithGoogle, setNickname: saveNickname } = useAuth()
   const router = useRouter()
+  const trimmedNickname = nickname.trim()
+  const passwordChecks = getPasswordValidationChecks(password, {
+    email,
+    name: trimmedNickname,
+  })
+  const isPasswordValid = passwordChecks.every((check) => check.isMet)
+  const passwordStrength = getPasswordStrength(password, {
+    email,
+    name: trimmedNickname,
+  })
+  const confirmPasswordHasValue = confirmPassword.length > 0
+  const passwordsMatch = confirmPasswordHasValue && password === confirmPassword
+
+  const shouldShowPasswordGuidance = isPasswordFieldFocused || (password.length > 0 && !isPasswordValid)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-
-    const trimmedNickname = nickname.trim()
 
     if (!trimmedNickname) {
       setError("Enter a nickname for your dashboard greeting")
@@ -62,8 +80,13 @@ export default function SignupPage() {
       return
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters")
+    const passwordValidation = validatePasswordPolicy(password, {
+      email,
+      name: trimmedNickname,
+    })
+
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.error)
       return
     }
 
@@ -209,25 +232,93 @@ export default function SignupPage() {
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Create a password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
+                    <div
+                      onFocusCapture={() => setIsPasswordFieldFocused(true)}
+                      onBlurCapture={(event) => {
+                        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                          setIsPasswordFieldFocused(false)
+                        }
+                      }}
+                    >
+                      <InputGroup>
+                      <InputGroupInput
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Create a password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        autoComplete="new-password"
+                        required
+                      />
+                      <InputGroupAddon align="inline-end">
+                        <InputGroupButton
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          aria-pressed={showPassword}
+                          onClick={() => setShowPassword((current) => !current)}
+                          size="icon-xs"
+                          variant="ghost"
+                        >
+                          {showPassword ? <EyeOff /> : <Eye />}
+                        </InputGroupButton>
+                      </InputGroupAddon>
+                      </InputGroup>
+                      {shouldShowPasswordGuidance && (
+                        <div className="mt-3 space-y-3 rounded-lg border bg-muted/40 p-3">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+                              <span>Password strength</span>
+                              <span>{passwordStrength.label}</span>
+                            </div>
+                            <Progress value={passwordStrength.score} className="h-1.5" />
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {passwordChecks.map((check) => (
+                              <div
+                                key={check.id}
+                                className="flex items-center gap-2 text-xs text-muted-foreground"
+                              >
+                                {check.isMet ? (
+                                  <Check className="h-3.5 w-3.5 text-emerald-600" />
+                                ) : (
+                                  <Circle className="h-3.5 w-3.5" />
+                                )}
+                                <span className={check.isMet ? "text-foreground" : undefined}>{check.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="confirmPassword">Confirm password</FieldLabel>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="Confirm your password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
+                    <InputGroup>
+                      <InputGroupInput
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Confirm your password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        autoComplete="new-password"
+                        required
+                      />
+                      <InputGroupAddon align="inline-end">
+                        <InputGroupButton
+                          aria-label={showConfirmPassword ? "Hide password confirmation" : "Show password confirmation"}
+                          aria-pressed={showConfirmPassword}
+                          onClick={() => setShowConfirmPassword((current) => !current)}
+                          size="icon-xs"
+                          variant="ghost"
+                        >
+                          {showConfirmPassword ? <EyeOff /> : <Eye />}
+                        </InputGroupButton>
+                      </InputGroupAddon>
+                    </InputGroup>
+                    {confirmPasswordHasValue && (
+                      <p className={`mt-2 text-xs ${passwordsMatch ? "text-emerald-600" : "text-destructive"}`}>
+                        {passwordsMatch ? "Passwords match" : "Passwords do not match"}
+                      </p>
+                    )}
                   </Field>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Creating account..." : "Create account"}
