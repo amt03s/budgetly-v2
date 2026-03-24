@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { DM_Sans } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
 import { BudgetProvider } from '@/lib/budget-context'
@@ -35,7 +34,6 @@ export default function RootLayout({
             </CurrencyProvider>
           </AuthProvider>
         </ThemeProvider>
-        <Analytics />
       </body>
     </html>
   )
