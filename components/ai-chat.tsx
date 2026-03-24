@@ -18,7 +18,7 @@ type ChatMessage = {
 }
 
 export function AIChat() {
-  const { transactions, totalBalance, totalIncome, totalExpenses, wallets } = useBudget()
+  const { transactions, totalBalance, totalIncome, totalExpenses, wallets, addChatMessage } = useBudget()
   const { currency } = useCurrency()
   const [inputValue, setInputValue] = useState("")
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -81,6 +81,7 @@ export function AIChat() {
     }
 
     setMessages((prev) => [...prev, userMessage])
+    addChatMessage({ role: "user", content: trimmed })
     setIsLoading(true)
 
     try {
@@ -111,15 +112,18 @@ export function AIChat() {
           text: assistantText,
         },
       ])
+      addChatMessage({ role: "assistant", content: assistantText })
     } catch {
+      const fallbackText = "I ran into a connection issue. Please try again."
       setMessages((prev) => [
         ...prev,
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          text: "I ran into a connection issue. Please try again.",
+          text: fallbackText,
         },
       ])
+      addChatMessage({ role: "assistant", content: fallbackText })
     } finally {
       setIsLoading(false)
     }
