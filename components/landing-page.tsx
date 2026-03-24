@@ -2,8 +2,16 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, PieChart, Wallet, TrendingUp, MessageSquare } from "lucide-react"
+import { ArrowRight, PieChart, Wallet, TrendingUp, MessageSquare, Menu } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 
 export function LandingPage() {
   return (
@@ -25,7 +33,7 @@ export function LandingPage() {
               How it Works
             </Link>
           </nav>
-          <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-3 md:flex">
             <ThemeToggle />
             <Link href="/login">
               <Button variant="ghost" size="sm">Log in</Button>
@@ -34,6 +42,39 @@ export function LandingPage() {
               <Button size="sm">Sign up</Button>
             </Link>
           </div>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="md:hidden">
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+                <SheetDescription>
+                  Access account actions and appearance settings on mobile.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex flex-1 flex-col gap-4 px-4 pb-6">
+                <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium">Appearance</p>
+                    <p className="text-xs text-muted-foreground">Switch light or dark mode</p>
+                  </div>
+                  <ThemeToggle />
+                </div>
+                <div className="grid gap-3">
+                  <Link href="/login">
+                    <Button variant="outline" className="w-full justify-center">Log in</Button>
+                  </Link>
+                  <Link href="/signup">
+                    <Button className="w-full justify-center">Sign up</Button>
+                  </Link>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 
