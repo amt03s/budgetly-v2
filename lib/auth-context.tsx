@@ -14,7 +14,6 @@ import {
   onAuthStateChanged,
   updateProfile,
 } from "firebase/auth"
-import { FirebaseError } from "firebase/app"
 import { auth } from "./firebase"
 import { validatePasswordPolicy } from "./password-policy"
 
@@ -70,14 +69,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await signInWithEmailAndPassword(auth, normalizedEmail, password)
       setUser(result.user)
     } catch (error: unknown) {
-      if (
-        error instanceof FirebaseError &&
-        error.code === "auth/invalid-credential" &&
-        normalizedEmail.endsWith("@gmail.com")
-      ) {
-        throw new Error("This account was created with Google. Please click Log in with Google instead.")
-      }
-
       throw error
     }
   }
