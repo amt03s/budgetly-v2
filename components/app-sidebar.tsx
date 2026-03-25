@@ -13,6 +13,7 @@ import {
   CreditCard,
   PiggyBank,
   Repeat,
+  UserCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
@@ -86,9 +87,18 @@ export function AppSidebar() {
         </nav>
 
         <div className="border-t border-border p-4 flex flex-col gap-2">
-          <div className="truncate text-sm font-medium">
-            {user?.displayName || user?.email}
-          </div>
+          <Link
+            href="/dashboard/profile"
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
+              pathname === "/dashboard/profile"
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <UserCircle className="h-4 w-4 shrink-0" />
+            <span className="truncate">{user?.displayName || user?.email}</span>
+          </Link>
           <Button
             variant="ghost"
             size="sm"

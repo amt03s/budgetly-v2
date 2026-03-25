@@ -5,13 +5,16 @@ import {
   User,
   createUserWithEmailAndPassword,
   deleteUser,
+  EmailAuthProvider,
   fetchSignInMethodsForEmail,
   getAdditionalUserInfo,
   GoogleAuthProvider,
+  reauthenticateWithCredential,
   signInWithPopup,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  updatePassword,
   updateProfile,
 } from "firebase/auth"
 import { auth } from "./firebase"
@@ -24,6 +27,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>
   signInWithGoogle: (options?: { allowCreate?: boolean }) => Promise<{ isNewUser: boolean }>
   setNickname: (nickname: string) => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   logOut: () => Promise<void>
 }
 
@@ -108,12 +112,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(auth.currentUser)
   }
 
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    if (!auth.currentUser || !auth.currentUser.email) {
+      throw new Error("You must be signed in to change your password")
+    }
+
+    const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword)
+    await reauthenticateWithCredential(auth.currentUser, credential)
+
+    const passwordValidation = validatePasswordPolicy(newPassword, {
+      email: auth.currentUser.email,
+      name: auth.currentUser.displayName || undefined,
+    })
+
+    if (!passwordValidation.isValid) {
+      throw new Error(passwordValidation.error)
+    }
+
+    await updatePassword(auth.currentUser, newPassword)
+  }
+
   const logOut = async () => {
     await signOut(auth)
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signUp, signIn, signInWithGoogle, setNickname, logOut }}>
+    <AuthContext.Provider value={{ user, isLoading, signUp, signIn, signInWithGoogle, setNickname, changePassword, logOut }}>
       {children}
     </AuthContext.Provider>
   )

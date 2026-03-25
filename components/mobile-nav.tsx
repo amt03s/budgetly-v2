@@ -11,6 +11,7 @@ import {
   PieChart,
   MessageSquare,
   Repeat,
+  UserCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/dashboard/debts", label: "Debts", icon: CreditCard },
   { href: "/dashboard/insights", label: "Insights", icon: PieChart },
   { href: "/dashboard/chat", label: "Budge", icon: MessageSquare },
+  { href: "/dashboard/profile", label: "Profile", icon: UserCircle },
 ]
 
 export function MobileNav() {
@@ -30,7 +32,7 @@ export function MobileNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background md:hidden">
-      <ul className="grid grid-cols-8">
+      <ul className="grid grid-cols-9">
         {navItems.map((item) => {
           const isActive = pathname === item.href
           return (
