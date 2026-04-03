@@ -1,5 +1,7 @@
 import { InsightsCharts } from "@/components/insights-charts"
 import { AiSpendingInsights } from "@/components/ai-spending-insights"
+import { FinancialHealthScore } from "@/components/financial-health-score"
+import { PersonalizedFinancialAdvice } from "@/components/personalized-financial-advice"
 
 export default function InsightsPage() {
   return (
@@ -10,6 +12,10 @@ export default function InsightsPage() {
           Visualize your financial data
         </p>
       </div>
+
+      <FinancialHealthScore />
+
+      <PersonalizedFinancialAdvice />
 
       <AiSpendingInsights />
 

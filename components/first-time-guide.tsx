@@ -19,8 +19,9 @@ interface FirstTimeGuideProps {
 }
 
 export function FirstTimeGuide({ userId }: FirstTimeGuideProps) {
-  const { wallets, transactions, savingGoals, debts, chatMessages } = useBudget()
+  const { wallets, transactions, savingGoals, debts } = useBudget()
   const [isDismissed, setIsDismissed] = useState(false)
+  const [hasVisitedBudge, setHasVisitedBudge] = useState(false)
 
   useEffect(() => {
     if (!userId) {
@@ -31,6 +32,10 @@ export function FirstTimeGuide({ userId }: FirstTimeGuideProps) {
     const storageKey = `budgetly:first-time-guide-dismissed:${userId}`
     const dismissed = window.localStorage.getItem(storageKey) === "true"
     setIsDismissed(dismissed)
+
+    const visitedKey = `budgetly:visited-budge:${userId}`
+    const visited = window.localStorage.getItem(visitedKey) === "true"
+    setHasVisitedBudge(visited)
   }, [userId])
 
   const steps = useMemo(
@@ -61,14 +66,14 @@ export function FirstTimeGuide({ userId }: FirstTimeGuideProps) {
       },
       {
         id: "chat",
-        title: "Ask Budge for a tip",
-        description: "Get one practical suggestion from your AI budgeting guide.",
+        title: "Visit Budge",
+        description: "Meet your AI budgeting guide and explore what it can do for you.",
         href: "/dashboard/chat",
-        actionLabel: "Chat with Budge",
-        complete: chatMessages.length > 0,
+        actionLabel: "Visit Budge",
+        complete: hasVisitedBudge,
       },
     ],
-    [wallets.length, transactions.length, savingGoals.length, debts.length, chatMessages.length]
+    [wallets.length, transactions.length, savingGoals.length, debts.length, hasVisitedBudge]
   )
 
   const totalSteps = steps.length
@@ -88,6 +93,14 @@ export function FirstTimeGuide({ userId }: FirstTimeGuideProps) {
     }
 
     setIsDismissed(true)
+  }
+
+  const handleStepClick = (stepId: string) => {
+    if (stepId === "chat" && userId) {
+      const visitedKey = `budgetly:visited-budge:${userId}`
+      window.localStorage.setItem(visitedKey, "true")
+      setHasVisitedBudge(true)
+    }
   }
 
   return (
@@ -142,7 +155,7 @@ export function FirstTimeGuide({ userId }: FirstTimeGuideProps) {
 
               {!step.complete && (
                 <Button asChild size="sm" variant="outline" className="w-full sm:w-auto">
-                  <Link href={step.href}>{step.actionLabel}</Link>
+                  <Link href={step.href} onClick={() => handleStepClick(step.id)}>{step.actionLabel}</Link>
                 </Button>
               )}
             </div>

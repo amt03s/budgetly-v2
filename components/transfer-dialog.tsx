@@ -31,6 +31,7 @@ export function TransferDialog({ open, onOpenChange }: TransferDialogProps) {
   const [fromWalletId, setFromWalletId] = useState("")
   const [toWalletId, setToWalletId] = useState("")
   const [amount, setAmount] = useState("")
+  const [transferFee, setTransferFee] = useState("")
   const [date, setDate] = useState("")
   const [note, setNote] = useState("")
 
@@ -45,6 +46,7 @@ export function TransferDialog({ open, onOpenChange }: TransferDialogProps) {
     setFromWalletId(firstWalletId)
     setToWalletId(secondWalletId)
     setAmount("")
+    setTransferFee("")
     setDate(new Date().toISOString().split("T")[0])
     setNote("")
   }, [open, wallets])
@@ -72,7 +74,15 @@ export function TransferDialog({ open, onOpenChange }: TransferDialogProps) {
     e.preventDefault()
 
     const parsedAmount = Number.parseFloat(amount)
-    if (!fromWalletId || !toWalletId || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+    const parsedFee = transferFee.trim() === "" ? 0 : Number.parseFloat(transferFee)
+    if (
+      !fromWalletId ||
+      !toWalletId ||
+      Number.isNaN(parsedAmount) ||
+      parsedAmount <= 0 ||
+      Number.isNaN(parsedFee) ||
+      parsedFee < 0
+    ) {
       return
     }
 
@@ -80,6 +90,7 @@ export function TransferDialog({ open, onOpenChange }: TransferDialogProps) {
       fromWalletId,
       toWalletId,
       amount: parsedAmount,
+      fee: parsedFee,
       date,
       note,
     })
@@ -142,6 +153,19 @@ export function TransferDialog({ open, onOpenChange }: TransferDialogProps) {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="transferFee">Transfer Fee (optional)</Label>
+            <Input
+              id="transferFee"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              value={transferFee}
+              onChange={(e) => setTransferFee(e.target.value)}
             />
           </div>
 

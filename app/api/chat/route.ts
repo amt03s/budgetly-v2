@@ -50,9 +50,7 @@ Output format rules:
 
   const chat = model.startChat({
     history,
-    systemInstruction: {
-      parts: [{ text: systemPrompt }],
-    },
+    systemInstruction: systemPrompt,
   })
 
   const lastMessage = messages[messages.length - 1]

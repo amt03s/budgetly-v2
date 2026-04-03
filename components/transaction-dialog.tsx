@@ -42,16 +42,21 @@ export function TransactionDialog({
   onOpenChange,
   transaction,
 }: TransactionDialogProps) {
-  const { wallets, addTransaction, updateTransaction, addRecurringTemplate } = useBudget()
+  const { wallets, transactions, addTransaction, updateTransaction, addRecurringTemplate } = useBudget()
   const [type, setType] = useState<TransactionType>("expense")
   const [amount, setAmount] = useState("")
-  const [category, setCategory] = useState<Category>("food")
+  const [category, setCategory] = useState<Category | "">("")
   const [walletId, setWalletId] = useState("")
   const [date, setDate] = useState("")
   const [customCategory, setCustomCategory] = useState("")
   const [description, setDescription] = useState("")
+  const [isCategoryAutoFilled, setIsCategoryAutoFilled] = useState(false)
+  const [isCategoryManualOverride, setIsCategoryManualOverride] = useState(false)
   const [isRecurring, setIsRecurring] = useState(false)
   const [frequency, setFrequency] = useState<RecurringFrequency>("monthly")
+
+  const normalizeDescription = (value: string): string =>
+    value.trim().replace(/\s+/g, " ").toLowerCase()
 
   const shiftDateByFrequency = (dateKey: string, selectedFrequency: RecurringFrequency): string => {
     const [year, month, day] = dateKey.split("-").map((part) => Number(part))
@@ -82,39 +87,84 @@ export function TransactionDialog({
       setDate(transaction.date)
       setCustomCategory(transaction.customCategory || "")
       setDescription(transaction.description || "")
+      setIsCategoryAutoFilled(false)
+      setIsCategoryManualOverride(false)
       setIsRecurring(false)
       setFrequency("monthly")
     } else {
       setType("expense")
       setAmount("")
-      setCategory("food")
+      setCategory("")
       setWalletId(wallets[0]?.id || "")
       setDate(new Date().toISOString().split("T")[0])
       setCustomCategory("")
       setDescription("")
+      setIsCategoryAutoFilled(false)
+      setIsCategoryManualOverride(false)
       setIsRecurring(false)
       setFrequency("monthly")
     }
   }, [transaction, wallets, open])
 
+  useEffect(() => {
+    if (!open || transaction || isCategoryManualOverride) {
+      return
+    }
+
+    const normalizedDescription = normalizeDescription(description)
+    if (!normalizedDescription) {
+      setIsCategoryAutoFilled(false)
+      return
+    }
+
+    const matchingTransaction = [...transactions]
+      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+      .find((item) => {
+        if (item.type !== type) {
+          return false
+        }
+
+        if (!item.description?.trim()) {
+          return false
+        }
+
+        return normalizeDescription(item.description) === normalizedDescription
+      })
+
+    if (!matchingTransaction) {
+      setIsCategoryAutoFilled(false)
+      return
+    }
+
+    setCategory(matchingTransaction.category)
+    setCustomCategory(
+      matchingTransaction.category === "other"
+        ? matchingTransaction.customCategory?.trim() || ""
+        : ""
+    )
+    setIsCategoryAutoFilled(true)
+  }, [open, transaction, isCategoryManualOverride, description, transactions, type])
+
   const categories = type === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!amount || !walletId) return
+    if (!amount || !walletId || !category) return
+
+    const selectedCategory = category
 
     const trimmedCustomCategory = customCategory.trim()
     const trimmedDescription = description.trim()
 
-    if (category === "other" && !trimmedCustomCategory) {
+    if (selectedCategory === "other" && !trimmedCustomCategory) {
       return
     }
 
     const transactionData = {
       amount: parseFloat(amount),
       type,
-      category,
-      customCategory: category === "other" ? trimmedCustomCategory : "",
+      category: selectedCategory,
+      customCategory: selectedCategory === "other" ? trimmedCustomCategory : "",
       walletId,
       date,
       description: trimmedDescription,
@@ -126,15 +176,15 @@ export function TransactionDialog({
       } else if (isRecurring) {
         const recurringName =
           trimmedDescription ||
-          CATEGORY_LABELS[category] ||
+          CATEGORY_LABELS[selectedCategory] ||
           (type === "income" ? "Recurring income" : "Recurring expense")
 
         const templateId = await addRecurringTemplate({
           name: recurringName,
           amount: parseFloat(amount),
           type,
-          category,
-          customCategory: category === "other" ? trimmedCustomCategory : "",
+          category: selectedCategory,
+          customCategory: selectedCategory === "other" ? trimmedCustomCategory : "",
           walletId,
           description: trimmedDescription,
           frequency,
@@ -178,8 +228,10 @@ export function TransactionDialog({
               value={type}
               onValueChange={(value: TransactionType) => {
                 setType(value)
-                setCategory(value === "expense" ? "food" : "salary")
+                setCategory("")
                 setCustomCategory("")
+                setIsCategoryAutoFilled(false)
+                setIsCategoryManualOverride(false)
               }}
             >
               <SelectTrigger>
@@ -207,18 +259,38 @@ export function TransactionDialog({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="description">Description (optional)</Label>
+              <Input
+                id="description"
+                placeholder="Enter description"
+                value={description}
+                onChange={(e) => {
+                  setDescription(e.target.value)
+                  setIsCategoryManualOverride(false)
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="category">Category</Label>
+                {isCategoryAutoFilled && (
+                  <span className="text-xs text-muted-foreground">Auto-categorized from history</span>
+                )}
+              </div>
               <Select
-                value={category}
+                value={category || undefined}
                 onValueChange={(value: Category) => {
                   setCategory(value)
+                  setIsCategoryAutoFilled(false)
+                  setIsCategoryManualOverride(true)
                   if (value !== "other") {
                     setCustomCategory("")
                   }
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent className="max-h-64">
                   {categories.map((cat) => (
@@ -267,16 +339,6 @@ export function TransactionDialog({
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="description">Description (optional)</Label>
-              <Input
-                id="description"
-                placeholder="Enter description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
               />
             </div>
 

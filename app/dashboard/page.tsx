@@ -6,6 +6,8 @@ import { UpcomingReminders } from "@/components/upcoming-reminders"
 import { RecentTransactions } from "@/components/recent-transactions"
 import { AiSpendingInsights } from "@/components/ai-spending-insights"
 import { FirstTimeGuide } from "@/components/first-time-guide"
+import { FinancialHealthScore } from "@/components/financial-health-score"
+import { PersonalizedFinancialAdvice } from "@/components/personalized-financial-advice"
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -29,9 +31,13 @@ export default function DashboardPage() {
 
       <SummaryCards />
 
+      <FinancialHealthScore />
+
       <UpcomingReminders />
 
       <AiSpendingInsights />
+
+      <PersonalizedFinancialAdvice />
 
       <RecentTransactions />
     </div>

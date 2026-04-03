@@ -42,6 +42,7 @@ interface BudgetContextType {
     fromWalletId: string
     toWalletId: string
     amount: number
+    fee?: number
     date: string
     note?: string
   }) => Promise<void>
@@ -96,7 +97,7 @@ function shiftDateByFrequency(dateKey: string, frequency: RecurringFrequency): s
   return toDateKey(base)
 }
 
-function omitUndefinedFields<T extends Record<string, unknown>>(payload: T): Partial<T> {
+function omitUndefinedFields<T extends Record<string, any>>(payload: T): Partial<T> {
   return Object.fromEntries(
     Object.entries(payload).filter(([, value]) => value !== undefined)
   ) as Partial<T>
@@ -376,7 +377,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       const transactionRef = doc(db, "users", user.uid, "transactions", id)
       await updateDoc(
         transactionRef,
-        omitUndefinedFields(updates as Record<string, unknown>)
+        omitUndefinedFields(updates as Record<string, any>)
       )
     } catch (error) {
       console.error("Error updating transaction:", error)
@@ -486,6 +487,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       fromWalletId: string
       toWalletId: string
       amount: number
+      fee?: number
       date: string
       note?: string
     }
@@ -494,12 +496,15 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       throw new Error("You must be signed in to transfer funds")
     }
 
-    const { fromWalletId, toWalletId, amount, date, note } = params
+    const { fromWalletId, toWalletId, amount, fee = 0, date, note } = params
     if (fromWalletId === toWalletId) {
       throw new Error("Source and destination wallets must be different")
     }
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new Error("Transfer amount must be greater than zero")
+    }
+    if (!Number.isFinite(fee) || fee < 0) {
+      throw new Error("Transfer fee cannot be negative")
     }
 
     const sourceWallet = wallets.find((wallet) => wallet.id === fromWalletId)
@@ -517,6 +522,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     const batch = writeBatch(db)
     const outgoingRef = doc(transactionCollection)
     const incomingRef = doc(transactionCollection)
+    const feeRef = fee > 0 ? doc(transactionCollection) : null
 
     const outgoingTransaction = omitUndefinedFields({
       amount,
@@ -542,8 +548,26 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       description: trimmedNote || `Transfer from ${sourceWallet.name}`,
     })
 
+    const feeTransaction = feeRef
+      ? omitUndefinedFields({
+          amount: fee,
+          type: "expense" as const,
+          category: "other" as const,
+          customCategory: "Transfer Fee",
+          walletId: fromWalletId,
+          date,
+          createdAt: transferCreatedAt + 2,
+          description: trimmedNote
+            ? `${trimmedNote} (Transfer fee)`
+            : `Transfer fee to move funds to ${destinationWallet.name}`,
+        })
+      : null
+
     batch.set(outgoingRef, outgoingTransaction)
     batch.set(incomingRef, incomingTransaction)
+    if (feeRef && feeTransaction) {
+      batch.set(feeRef, feeTransaction)
+    }
     await batch.commit()
   }, [user, transactionCollection, wallets])
 
@@ -573,7 +597,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }
 
     const templateRef = doc(db, "users", user.uid, "recurringTemplates", id)
-    await updateDoc(templateRef, omitUndefinedFields(updates as Record<string, unknown>))
+    await updateDoc(templateRef, omitUndefinedFields(updates as Record<string, any>))
   }, [user])
 
   const toggleRecurringTemplatePaused = useCallback(async (id: string, paused: boolean) => {
@@ -754,7 +778,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }
 
     const debtRef = doc(db, "users", user.uid, "debts", id)
-    await updateDoc(debtRef, omitUndefinedFields(updates as Record<string, unknown>))
+    await updateDoc(debtRef, omitUndefinedFields(updates as Record<string, any>))
   }, [user])
 
   const deleteDebt = useCallback(async (id: string) => {
@@ -832,7 +856,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       ...(typeof nextSaved === "number" && typeof nextTarget === "number"
         ? { status: nextSaved >= nextTarget ? "completed" : "active" }
         : {}),
-    } as Record<string, unknown>)
+    } as Record<string, any>)
 
     const goalRef = doc(db, "users", user.uid, "savingGoals", id)
     await updateDoc(goalRef, payload)

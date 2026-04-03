@@ -1,10 +1,12 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useBudget } from "@/lib/budget-context"
 import { useCurrency } from "@/lib/currency-context"
 import { getTransactionCategoryLabel, type Category } from "@/lib/types"
+import { isDateInPeriod, type TimePeriod } from "@/lib/time-period"
 import {
   PieChart,
   Pie,
@@ -33,9 +35,15 @@ const COLORS = [
 export function InsightsCharts() {
   const { transactions } = useBudget()
   const { formatAmount } = useCurrency()
+  const [period, setPeriod] = useState<TimePeriod>("monthly")
+
+  const filteredTransactions = useMemo(
+    () => transactions.filter((transaction) => isDateInPeriod(transaction.date, period)),
+    [transactions, period]
+  )
 
   const categoryData = useMemo(() => {
-    const expenses = transactions.filter((t) => t.type === "expense" && !t.transferId)
+    const expenses = filteredTransactions.filter((t) => t.type === "expense" && !t.transferId)
     const categoryTotals: Record<string, number> = {}
 
     expenses.forEach((t) => {
@@ -46,12 +54,12 @@ export function InsightsCharts() {
     return Object.entries(categoryTotals)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
-  }, [transactions])
+  }, [filteredTransactions])
 
   const timelineData = useMemo(() => {
     const dailyTotals: Record<string, { date: string; income: number; expenses: number }> = {}
 
-    transactions.forEach((t) => {
+    filteredTransactions.forEach((t) => {
       if (t.transferId) {
         return
       }
@@ -75,12 +83,27 @@ export function InsightsCharts() {
           day: "numeric",
         }),
       }))
-  }, [transactions])
+  }, [filteredTransactions])
 
   const totalExpenses = categoryData.reduce((sum, item) => sum + item.value, 0)
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="space-y-3">
+      <div className="flex items-center justify-end">
+        <Tabs
+          value={period}
+          onValueChange={(value) => setPeriod(value as TimePeriod)}
+        >
+          <TabsList>
+            <TabsTrigger value="weekly">Weekly</TabsTrigger>
+            <TabsTrigger value="monthly">Monthly</TabsTrigger>
+            <TabsTrigger value="yearly">Yearly</TabsTrigger>
+            <TabsTrigger value="all">All Time</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle>Spending by Category</CardTitle>
@@ -194,6 +217,7 @@ export function InsightsCharts() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

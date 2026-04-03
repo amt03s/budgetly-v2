@@ -152,7 +152,9 @@ export function AiSpendingInsights() {
               <div key={insight.id} className="rounded-md border p-3">
                 <div className="mb-1 flex items-center justify-between gap-2">
                   <p className="text-sm font-medium">{insight.title}</p>
-                  <Badge variant={getInsightBadgeVariant(insight.priority)}>{insight.priority}</Badge>
+                  {insight.priority !== "info" && (
+                    <Badge variant={getInsightBadgeVariant(insight.priority)}>{insight.priority}</Badge>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">{insight.description}</p>
                 <p className="mt-2 text-xs font-medium text-foreground">{insight.supportingMetric}</p>

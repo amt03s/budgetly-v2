@@ -8,6 +8,7 @@ import { AppSidebar } from "./app-sidebar"
 import { MobileNav } from "./mobile-nav"
 import { Spinner } from "@/components/ui/spinner"
 import { CurrencyPickerDialog } from "./currency-picker-dialog"
+import { IdlePresenceGuard } from "./idle-presence-guard"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "./theme-toggle"
@@ -54,6 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
+      <IdlePresenceGuard />
       <CurrencyPickerDialog
         open={isFirstTime || currencyDialogOpen}
         onOpenChange={setCurrencyDialogOpen}
