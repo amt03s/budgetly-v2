@@ -61,7 +61,7 @@ function sleep(ms: number) {
 
 function getConfiguredModelNames() {
   const primary = process.env.GEMINI_MODEL || "gemini-2.5-flash"
-  const fallback = (process.env.GEMINI_FALLBACK_MODELS || "")
+  const fallback = (process.env.GEMINI_FALLBACK_MODELS || "gemini-2.0-flash,gemini-1.5-flash")
     .split(",")
     .map((name) => name.trim())
     .filter((name) => name.length > 0)
@@ -213,6 +213,8 @@ Output format rules:
     const message = err instanceof Error ? err.message : String(err)
     console.error("[/api/chat] Gemini error:", message)
 
+    const transient = isTransientGeminiError(message)
+
     const status =
       message.includes("Bad Request") || message.includes("API key") || message.includes("not found")
         ? 400
@@ -220,7 +222,9 @@ Output format rules:
 
     return Response.json(
       {
-        error: "AI request failed",
+        error: transient
+          ? "AI provider is busy right now. Please try again in a few seconds."
+          : "AI request failed",
         details: process.env.NODE_ENV === "development" ? message : undefined,
       },
       { status }
