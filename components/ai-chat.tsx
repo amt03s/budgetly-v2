@@ -97,11 +97,19 @@ export function AIChat() {
         }),
       })
 
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`)
+      const raw = await response.text()
+      let data: { text?: string; error?: string; details?: string } = {}
+      try {
+        data = raw ? (JSON.parse(raw) as { text?: string; error?: string; details?: string }) : {}
+      } catch {
+        data = { error: raw || response.statusText }
       }
 
-      const data = (await response.json()) as { text?: string }
+      if (!response.ok) {
+        const reason = data.details || data.error || `status ${response.status}`
+        throw new Error(`Request failed: ${reason}`)
+      }
+
       const assistantText = data.text?.trim() || "I could not generate a response right now."
 
       setMessages((prev) => [
@@ -113,8 +121,9 @@ export function AIChat() {
         },
       ])
       addChatMessage({ role: "assistant", content: assistantText })
-    } catch {
-      const fallbackText = "I ran into a connection issue. Please try again."
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "connection issue"
+      const fallbackText = `I ran into an issue: ${reason}. Please try again.`
       setMessages((prev) => [
         ...prev,
         {
