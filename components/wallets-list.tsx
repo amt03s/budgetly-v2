@@ -126,7 +126,12 @@ export function WalletsList() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => void handleDelete(wallet.id)}>
+                          <AlertDialogAction
+                            onClick={(e) => {
+                              stopLinkNavigation(e)
+                              void handleDelete(wallet.id)
+                            }}
+                          >
                             Delete
                           </AlertDialogAction>
                         </AlertDialogFooter>

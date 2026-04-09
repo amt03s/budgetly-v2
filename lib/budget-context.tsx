@@ -456,26 +456,48 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      // Delete all transactions associated with this wallet
       const walletTransactions = transactions.filter((t) => t.walletId === id)
+      const transferIds = new Set(
+        walletTransactions
+          .map((transaction) => transaction.transferId)
+          .filter((transferId): transferId is string => Boolean(transferId))
+      )
+      const linkedTransferTransactions =
+        transferIds.size > 0
+          ? transactions.filter(
+              (transaction) =>
+                Boolean(transaction.transferId) &&
+                transferIds.has(transaction.transferId as string)
+            )
+          : []
+      const transactionIdsToDelete = new Set([
+        ...walletTransactions.map((transaction) => transaction.id),
+        ...linkedTransferTransactions.map((transaction) => transaction.id),
+      ])
       const walletGoals = savingGoals.filter((goal) => goal.walletId === id)
       const walletRecurringTemplates = recurringTemplates.filter((template) => template.walletId === id)
-      await Promise.all(
-        [
-          ...walletTransactions.map((t) =>
-            deleteDoc(doc(db, "users", user.uid, "transactions", t.id))
-          ),
-          ...walletGoals.map((goal) =>
-            deleteDoc(doc(db, "users", user.uid, "savingGoals", goal.id))
-          ),
-          ...walletRecurringTemplates.map((template) =>
-            deleteDoc(doc(db, "users", user.uid, "recurringTemplates", template.id))
-          ),
-        ]
-      )
-      // Delete the wallet
-      const walletRef = doc(db, "users", user.uid, "wallets", id)
-      await deleteDoc(walletRef)
+
+      const refsToDelete = [
+        ...Array.from(transactionIdsToDelete).map((transactionId) =>
+          doc(db, "users", user.uid, "transactions", transactionId)
+        ),
+        ...walletGoals.map((goal) =>
+          doc(db, "users", user.uid, "savingGoals", goal.id)
+        ),
+        ...walletRecurringTemplates.map((template) =>
+          doc(db, "users", user.uid, "recurringTemplates", template.id)
+        ),
+        doc(db, "users", user.uid, "wallets", id),
+      ]
+
+      const batchLimit = 450
+      for (let index = 0; index < refsToDelete.length; index += batchLimit) {
+        const batch = writeBatch(db)
+        refsToDelete.slice(index, index + batchLimit).forEach((ref) => {
+          batch.delete(ref)
+        })
+        await batch.commit()
+      }
     } catch (error) {
       console.error("Error deleting wallet:", error)
       throw error
