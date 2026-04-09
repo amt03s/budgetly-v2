@@ -187,7 +187,7 @@ export function DebtsList() {
                             size="icon-sm"
                             onClick={() => handleOpenPayment(debt)}
                             title="Record payment"
-                            className="opacity-0 transition-opacity group-hover:opacity-100"
+                            className="opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
                           >
                             <CheckCircle2 className="h-4 w-4 text-green-600" />
                           </Button>
@@ -196,7 +196,7 @@ export function DebtsList() {
                           variant="ghost"
                           size="icon-sm"
                           onClick={() => handleEdit(debt)}
-                          className="opacity-0 transition-opacity group-hover:opacity-100"
+                          className="opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -205,7 +205,7 @@ export function DebtsList() {
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              className="opacity-0 transition-opacity group-hover:opacity-100"
+                              className="opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

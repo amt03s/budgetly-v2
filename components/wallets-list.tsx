@@ -120,7 +120,7 @@ export function WalletsList() {
                       variant="ghost"
                       size="icon-sm"
                       onClick={(e) => handleEdit(wallet, e)}
-                      className="opacity-0 transition-opacity group-hover:opacity-100"
+                      className="opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -130,7 +130,7 @@ export function WalletsList() {
                           variant="ghost"
                           size="icon-sm"
                           disabled={deletingWalletId === wallet.id}
-                          className="opacity-0 transition-opacity group-hover:opacity-100"
+                          className="opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

@@ -231,7 +231,7 @@ export function SavingGoalsList() {
                           variant="ghost"
                           size="icon-sm"
                           onClick={() => handleEdit(goal)}
-                          className="opacity-0 transition-opacity group-hover:opacity-100"
+                          className="opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -240,7 +240,7 @@ export function SavingGoalsList() {
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              className="opacity-0 transition-opacity group-hover:opacity-100"
+                              className="opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
