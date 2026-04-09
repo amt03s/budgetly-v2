@@ -27,12 +27,11 @@ async function fetchRate(from: string, to: string): Promise<number> {
   const key = `${from}_${to}`
   if (rateCache.has(key)) return rateCache.get(key)!
 
-  const res = await fetch(
-    `https://api.frankfurter.app/latest?from=${from}&to=${to}`
-  )
+  const params = new URLSearchParams({ from, to })
+  const res = await fetch(`/api/exchange-rate?${params.toString()}`)
   if (!res.ok) throw new Error("Failed to fetch exchange rate")
-  const data = (await res.json()) as { rates: Record<string, number> }
-  const rate = data.rates[to]
+  const data = (await res.json()) as { rate?: number }
+  const rate = data.rate
   if (!rate) throw new Error(`Rate not found for ${to}`)
   rateCache.set(key, rate)
   return rate
