@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useBudget } from "@/lib/budget-context"
 import { useCurrency } from "@/lib/currency-context"
+import { useToast } from "@/hooks/use-toast"
 import { WalletDialog } from "./wallet-dialog"
 import { TransferDialog } from "./transfer-dialog"
 import type { Wallet } from "@/lib/types"
@@ -26,10 +27,12 @@ import {
 export function WalletsList() {
   const { wallets, deleteWallet } = useBudget()
   const { formatAmount } = useCurrency()
+  const { toast } = useToast()
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
   const [editingWallet, setEditingWallet] = useState<Wallet | null>(null)
+  const [deletingWalletId, setDeletingWalletId] = useState<string | null>(null)
 
   const handleEdit = (wallet: Wallet, e: React.MouseEvent) => {
     e.preventDefault()
@@ -43,13 +46,24 @@ export function WalletsList() {
     setDialogOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
-    await deleteWallet(id)
-  }
-
-  const stopLinkNavigation = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+  const handleDelete = async (id: string, name: string) => {
+    try {
+      setDeletingWalletId(id)
+      await deleteWallet(id)
+      toast({
+        title: "Wallet deleted",
+        description: `\"${name}\" has been deleted.`,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not delete wallet"
+      toast({
+        title: "Delete failed",
+        description: message,
+        variant: "destructive",
+      })
+    } finally {
+      setDeletingWalletId(null)
+    }
   }
 
   return (
@@ -81,22 +95,26 @@ export function WalletsList() {
           ) : (
             <div className="flex flex-col gap-3">
               {wallets.map((wallet) => (
-                <Link
+                <div
                   key={wallet.id}
-                  href={`/dashboard/wallets/${wallet.id}`}
                   className="group flex items-center justify-between rounded-lg border border-border p-4 transition-colors hover:bg-muted"
                 >
-                  <div className="flex flex-col gap-0.5">
-                    <p className="font-medium">{wallet.name}</p>
-                    <p
-                      className={cn(
-                        "text-sm",
-                        wallet.balance >= 0 ? "text-foreground" : "text-destructive"
-                      )}
-                    >
-                      {formatAmount(wallet.balance)}
-                    </p>
-                  </div>
+                  <Link
+                    href={`/dashboard/wallets/${wallet.id}`}
+                    className="min-w-0 flex-1"
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <p className="font-medium">{wallet.name}</p>
+                      <p
+                        className={cn(
+                          "text-sm",
+                          wallet.balance >= 0 ? "text-foreground" : "text-destructive"
+                        )}
+                      >
+                        {formatAmount(wallet.balance)}
+                      </p>
+                    </div>
+                  </Link>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="ghost"
@@ -111,7 +129,7 @@ export function WalletsList() {
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          onClick={stopLinkNavigation}
+                          disabled={deletingWalletId === wallet.id}
                           className="opacity-0 transition-opacity group-hover:opacity-100"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -127,19 +145,26 @@ export function WalletsList() {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={(e) => {
-                              stopLinkNavigation(e)
-                              void handleDelete(wallet.id)
-                            }}
+                            onClick={() => void handleDelete(wallet.id, wallet.name)}
+                            disabled={deletingWalletId === wallet.id}
                           >
-                            Delete
+                            {deletingWalletId === wallet.id ? "Deleting..." : "Delete"}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    <Link href={`/dashboard/wallets/${wallet.id}`}>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-muted-foreground"
+                        aria-label={`Open ${wallet.name}`}
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </Button>
+                    </Link>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
