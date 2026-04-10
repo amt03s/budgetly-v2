@@ -1,3 +1,5 @@
+// Full transactions list with search, type/category/wallet filters, date sorting, and CRUD operations (add, edit, delete).
+
 "use client"
 
 import { useState, useMemo } from "react"

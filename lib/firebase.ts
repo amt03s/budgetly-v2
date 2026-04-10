@@ -1,3 +1,5 @@
+// Firebase app initialisation (singleton guard) that exports the Firestore `db` and Authentication `auth` instances.
+
 import { initializeApp, getApps } from "firebase/app"
 import { getFirestore } from "firebase/firestore"
 import { getAuth } from "firebase/auth"

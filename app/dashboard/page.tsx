@@ -1,3 +1,5 @@
+// Main dashboard page: greeting, summary cards, upcoming reminders, recent transactions, AI spending insights, health score, and personalised advice.
+
 "use client"
 
 import { useAuth } from "@/lib/auth-context"

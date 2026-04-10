@@ -1,3 +1,5 @@
+// Route page for user profile settings: update display name and change password with live strength validation.
+
 "use client"
 
 import { useState } from "react"

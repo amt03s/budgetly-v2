@@ -1,3 +1,5 @@
+// Interactive AI chat component ("Budge") that sends user messages along with their financial data as context to the /api/chat route and streams assistant replies.
+
 "use client"
 
 import { useState, useRef, useEffect, useMemo } from "react"

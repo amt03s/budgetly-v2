@@ -1,3 +1,5 @@
+// Thin wrapper around next-themes ThemeProvider that enables dark/light/system theme switching app-wide.
+
 'use client'
 
 import * as React from 'react'

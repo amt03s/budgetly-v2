@@ -1,3 +1,5 @@
+// Utility: `cn()` merges Tailwind class names safely using clsx + tailwind-merge.
+
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 

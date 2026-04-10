@@ -1,3 +1,5 @@
+// Saving goals management panel: lists goals with progress bars, supports add/edit/delete, and allows depositing or withdrawing funds from a goal.
+
 "use client"
 
 import { useMemo, useState } from "react"

@@ -1,3 +1,5 @@
+// Wallets management panel: shows each wallet's balance, CRUD controls, and quick-access buttons to transfer funds or view filtered transactions.
+
 "use client"
 
 import { useState } from "react"

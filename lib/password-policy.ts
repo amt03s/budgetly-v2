@@ -1,3 +1,5 @@
+// Password strength scoring and per-rule validation checks (length, uppercase, number, symbol, no personal info) used on sign-up and profile pages.
+
 const MIN_PASSWORD_LENGTH = 12
 
 interface PasswordValidationOptions {

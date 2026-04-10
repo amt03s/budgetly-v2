@@ -1,3 +1,5 @@
+// Onboarding checklist card shown to new users, tracking setup steps (add wallet, transaction, goal, debt) until manually dismissed.
+
 "use client"
 
 import Link from "next/link"

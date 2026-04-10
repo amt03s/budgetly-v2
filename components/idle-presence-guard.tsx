@@ -1,3 +1,5 @@
+// Session security guard: shows an inactivity warning dialog after 10 min and force-logs the user out after 20 min of no interaction.
+
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"

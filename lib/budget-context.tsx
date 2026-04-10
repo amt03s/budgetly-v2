@@ -1,3 +1,5 @@
+// Central React context for all budget data (transactions, wallets, saving goals, debts, recurring templates) with Firestore CRUD and real-time snapshot sync.
+
 "use client"
 
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from "react"
@@ -392,6 +394,9 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const targetTransaction = transactions.find((transaction) => transaction.id === id)
+      const recurringTemplateRef = targetTransaction?.recurringTemplateId
+        ? doc(db, "users", user.uid, "recurringTemplates", targetTransaction.recurringTemplateId)
+        : null
 
       if (targetTransaction?.transferId) {
         const linkedTransferTransactions = transactions.filter(
@@ -403,6 +408,18 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
           const transactionRef = doc(db, "users", user.uid, "transactions", transaction.id)
           batch.delete(transactionRef)
         })
+        if (recurringTemplateRef) {
+          batch.delete(recurringTemplateRef)
+        }
+        await batch.commit()
+        return
+      }
+
+      if (recurringTemplateRef) {
+        const batch = writeBatch(db)
+        const transactionRef = doc(db, "users", user.uid, "transactions", id)
+        batch.delete(transactionRef)
+        batch.delete(recurringTemplateRef)
         await batch.commit()
         return
       }

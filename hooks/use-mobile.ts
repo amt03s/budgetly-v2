@@ -1,3 +1,5 @@
+// Hook that returns `true` when the viewport width is below the 768 px mobile breakpoint, updated reactively on resize.
+
 import * as React from 'react'
 
 const MOBILE_BREAKPOINT = 768

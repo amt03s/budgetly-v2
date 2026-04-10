@@ -1,3 +1,5 @@
+// React context and provider for Firebase authentication: sign up, email/Google sign-in, sign out, profile updates, and password changes.
+
 "use client"
 
 import React, { createContext, useContext, useState, useEffect } from "react"

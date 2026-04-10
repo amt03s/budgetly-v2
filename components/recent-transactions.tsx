@@ -1,3 +1,5 @@
+// Dashboard widget that lists the 5 most recent transactions with category, wallet, date, and signed amount.
+
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

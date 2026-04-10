@@ -1,3 +1,5 @@
+// Route page for the debts and receivables management view.
+
 import { DebtsList } from "@/components/debts-list"
 
 export default function DebtsPage() {

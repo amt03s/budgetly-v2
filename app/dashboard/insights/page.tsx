@@ -1,3 +1,5 @@
+// Route page combining insight charts, AI spending insights, financial health score, and personalised advice cards.
+
 import { InsightsCharts } from "@/components/insights-charts"
 import { AiSpendingInsights } from "@/components/ai-spending-insights"
 import { FinancialHealthScore } from "@/components/financial-health-score"

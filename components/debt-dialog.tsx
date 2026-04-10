@@ -1,3 +1,5 @@
+// Form dialog for creating or editing a debt or receivable entry (amount, type, due date, notes).
+
 "use client"
 
 import { useState, useEffect } from "react"

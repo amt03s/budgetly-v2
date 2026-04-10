@@ -1,3 +1,5 @@
+// State-machine-based toast notification hook (inspired by react-hot-toast) that manages a queue of toasts with add, update, dismiss, and auto-remove actions.
+
 'use client'
 
 // Inspired by react-hot-toast library

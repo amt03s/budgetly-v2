@@ -1,3 +1,5 @@
+// Pure functions that generate prioritised (critical → positive) rule-based financial advice items from the user's transactions, debts, and saving goals.
+
 import type { Debt, SavingGoal, Transaction } from "@/lib/types"
 
 export type AdvicePriority = "critical" | "warning" | "info" | "positive"

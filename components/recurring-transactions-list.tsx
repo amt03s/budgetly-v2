@@ -1,3 +1,5 @@
+// Management view for recurring transaction templates: displays schedules, supports pause/resume/delete, and lets users trigger a manual run.
+
 "use client"
 
 import { useMemo, useState } from "react"

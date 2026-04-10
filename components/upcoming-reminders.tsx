@@ -1,3 +1,5 @@
+// Dashboard widget listing upcoming and overdue payment reminders derived from recurring transaction schedules and debt due dates.
+
 "use client"
 
 import Link from "next/link"

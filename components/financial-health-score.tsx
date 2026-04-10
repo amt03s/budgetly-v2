@@ -1,3 +1,5 @@
+// Semicircle gauge card that visualises a 0-100 financial health score broken down into savings rate, debt ratio, goal progress, and spending diversity dimensions.
+
 "use client"
 
 import { useMemo } from "react"

@@ -1,3 +1,5 @@
+// Form dialog for creating or editing an income/expense transaction, with support for category, wallet, date, notes, and an optional recurring schedule.
+
 "use client"
 
 import { useState, useEffect } from "react"

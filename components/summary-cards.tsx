@@ -1,3 +1,5 @@
+// Dashboard summary cards showing total balance, total debt, and period income/expenses with a weekly/monthly/yearly/all-time period selector.
+
 "use client"
 
 import { useMemo, useState } from "react"

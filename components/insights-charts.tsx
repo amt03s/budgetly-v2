@@ -1,3 +1,5 @@
+// Recharts-powered insight charts: a pie chart for spending by category and a line chart for income vs. expense trends, filterable by time period.
+
 "use client"
 
 import { useMemo, useState } from "react"

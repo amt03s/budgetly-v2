@@ -1,3 +1,5 @@
+// Sign-in page supporting email/password and Google OAuth, with error messages and a link to sign up.
+
 "use client"
 
 import { useState } from "react"

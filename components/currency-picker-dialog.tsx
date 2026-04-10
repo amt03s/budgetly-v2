@@ -1,3 +1,5 @@
+// Modal dialog that lets the user pick their preferred display currency from the list of supported currencies.
+
 "use client"
 
 import { useState } from "react"

@@ -1,3 +1,5 @@
+// Algorithms that detect spending anomalies (statistical deviation from baseline) and generate behavioural spending insight messages from transaction history.
+
 import type { Category, Transaction } from "@/lib/types"
 
 type InsightPriority = "info" | "warning" | "critical" | "positive"

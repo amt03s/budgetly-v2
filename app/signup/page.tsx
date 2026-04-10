@@ -1,3 +1,5 @@
+// User registration page with email/password form, live password strength indicator, and per-rule validation checklist.
+
 "use client"
 
 import { useState } from "react"

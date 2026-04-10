@@ -1,3 +1,5 @@
+// Debts and receivables management panel: lists entries with progress bars, supports add/edit/delete, mark-as-paid, and payment logging.
+
 "use client"
 
 import { useState } from "react"

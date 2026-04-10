@@ -1,3 +1,5 @@
+// Marketing landing page with hero, feature highlights, onboarding steps, and auth call-to-actions.
+
 "use client"
 
 import Link from "next/link"

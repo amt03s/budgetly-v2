@@ -1,3 +1,5 @@
+// GET handler: validates currency pair query params and proxies the exchange rate lookup to an external rates API.
+
 export const runtime = "nodejs"
 
 type ExchangeRateResponse = {

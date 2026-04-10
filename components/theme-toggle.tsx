@@ -1,3 +1,5 @@
+// Dropdown button that lets the user switch between light, dark, and system theme.
+
 'use client'
 
 import * as React from 'react'

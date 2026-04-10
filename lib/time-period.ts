@@ -1,3 +1,5 @@
+// Helpers for defining time periods (weekly / monthly / yearly / all), filtering transactions by period, and generating human-readable period labels.
+
 export type TimePeriod = "weekly" | "monthly" | "yearly" | "all"
 
 function startOfDay(date: Date): Date {

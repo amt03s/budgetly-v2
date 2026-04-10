@@ -1,3 +1,5 @@
+// Pure functions that compute a weighted 0-100 financial health score across savings rate, debt ratio, goal progress, and spending diversity dimensions.
+
 import type { Transaction, Debt, SavingGoal } from "./types"
 import { generateSpendingInsights } from "./spending-insights"
 

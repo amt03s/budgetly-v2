@@ -1,3 +1,5 @@
+// Form dialog for creating a fund transfer between two wallets, recording paired debit and credit transactions.
+
 "use client"
 
 import { useEffect, useMemo, useState } from "react"

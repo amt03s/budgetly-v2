@@ -1,3 +1,5 @@
+// Card that surfaces rule-based personalised financial advice items (critical → positive) derived from the user's transactions, debts, and goals.
+
 "use client"
 
 import { useMemo, useState } from "react"

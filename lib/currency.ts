@@ -1,3 +1,5 @@
+// Static list of supported currencies with locale/symbol metadata, plus helpers for formatting and parsing currency amounts.
+
 export interface CurrencyConfig {
   code: string
   locale: string

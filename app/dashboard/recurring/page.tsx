@@ -1,3 +1,5 @@
+// Route page for managing recurring transaction templates.
+
 import { RecurringTransactionsList } from "@/components/recurring-transactions-list"
 
 export default function RecurringTransactionsPage() {

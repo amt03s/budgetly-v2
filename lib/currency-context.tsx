@@ -1,3 +1,5 @@
+// React context that manages the user's chosen display currency, fetches and caches exchange rates, and provides a formatted amount helper.
+
 "use client"
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react"

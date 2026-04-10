@@ -1,3 +1,5 @@
+// Desktop sidebar navigation with links to all dashboard sections, an active-route indicator, currency picker shortcut, and logout.
+
 "use client"
 
 import Link from "next/link"

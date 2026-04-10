@@ -1,3 +1,5 @@
+// POST handler: receives conversation history and user financial context, forwards to Google Gemini, and returns the assistant reply.
+
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { formatCurrencyWithCode } from "@/lib/currency"
 export const maxDuration = 60

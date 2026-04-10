@@ -1,3 +1,5 @@
+// Shared TypeScript types and enums for the whole application (Transaction, Wallet, Debt, SavingGoal, RecurringTransactionTemplate, etc.).
+
 export type TransactionType = "income" | "expense"
 
 export type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly"

@@ -1,3 +1,5 @@
+// Form dialog for creating or editing a saving goal (name, target amount, deadline, current progress).
+
 "use client"
 
 import { useEffect, useState } from "react"

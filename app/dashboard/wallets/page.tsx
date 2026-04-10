@@ -1,3 +1,5 @@
+// Route page for the wallets management view.
+
 import { WalletsList } from "@/components/wallets-list"
 
 export default function WalletsPage() {

@@ -1,3 +1,5 @@
+// Form dialog for creating or editing a wallet (name and optional starting balance).
+
 "use client"
 
 import { useState, useEffect } from "react"

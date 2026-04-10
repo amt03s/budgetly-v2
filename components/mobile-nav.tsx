@@ -1,3 +1,5 @@
+// Fixed bottom navigation bar rendered on mobile viewports with icon links to all main dashboard sections.
+
 "use client"
 
 import Link from "next/link"

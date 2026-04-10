@@ -1,3 +1,5 @@
+// Route page for the full transactions list with search, filter, and CRUD.
+
 import { TransactionsList } from "@/components/transactions-list"
 
 export default function TransactionsPage() {

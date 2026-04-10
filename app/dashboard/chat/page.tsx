@@ -1,3 +1,5 @@
+// Route page for the AI chat ("Budge") interface.
+
 import { AIChat } from "@/components/ai-chat"
 
 export default function ChatPage() {

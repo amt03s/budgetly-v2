@@ -1,3 +1,5 @@
+// Route page for the saving goals management view.
+
 import { SavingGoalsList } from "@/components/saving-goals-list"
 
 export default function GoalsPage() {

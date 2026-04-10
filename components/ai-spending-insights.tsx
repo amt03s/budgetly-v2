@@ -1,3 +1,5 @@
+// Displays AI-generated spending anomalies and behavioral insights with priority badges and a line chart for income/expense trends.
+
 "use client"
 
 import { useMemo } from "react"

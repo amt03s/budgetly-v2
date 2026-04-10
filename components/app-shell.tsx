@@ -1,3 +1,5 @@
+// Authenticated layout shell: handles auth redirect, currency loading spinner, idle-timeout guard, desktop sidebar, mobile nav, and the top bar with currency/theme controls.
+
 "use client"
 
 import { useAuth } from "@/lib/auth-context"

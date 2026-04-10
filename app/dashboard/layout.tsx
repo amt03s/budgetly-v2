@@ -1,3 +1,5 @@
+// Dashboard route wrapper that mounts the authenticated app shell around all dashboard pages.
+
 import { AppShell } from "@/components/app-shell"
 
 export default function DashboardLayout({
