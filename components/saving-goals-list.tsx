@@ -35,6 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useBudget } from "@/lib/budget-context"
 import { useCurrency } from "@/lib/currency-context"
 import type { SavingGoal } from "@/lib/types"
@@ -68,6 +69,7 @@ export function SavingGoalsList() {
   const [withdrawDestinationWalletId, setWithdrawDestinationWalletId] = useState("")
   const [withdrawDate, setWithdrawDate] = useState("")
   const [isSubmittingWithdraw, setIsSubmittingWithdraw] = useState(false)
+  const [goalStatusFilter, setGoalStatusFilter] = useState<"all" | "active" | "completed">("active")
 
   const totals = useMemo(() => {
     const target = savingGoals.reduce((sum, goal) => sum + goal.targetAmount, 0)
@@ -180,6 +182,12 @@ export function SavingGoalsList() {
   }
 
   const getWalletName = (walletId: string) => wallets.find((wallet) => wallet.id === walletId)?.name ?? "Unknown wallet"
+  const filteredGoals = savingGoals.filter((goal) => {
+    if (goalStatusFilter === "all") {
+      return true
+    }
+    return goal.status === goalStatusFilter
+  })
 
   return (
     <>
@@ -197,6 +205,14 @@ export function SavingGoalsList() {
           </Button>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          <Tabs value={goalStatusFilter} onValueChange={(value) => setGoalStatusFilter(value as typeof goalStatusFilter)}>
+            <TabsList>
+              <TabsTrigger value="active">Ongoing</TabsTrigger>
+              <TabsTrigger value="completed">Completed</TabsTrigger>
+              <TabsTrigger value="all">All</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           {savingGoals.length > 0 && (
             <div className="rounded-lg border border-border p-3">
               <div className="mb-2 flex items-center justify-between text-sm">
@@ -211,13 +227,15 @@ export function SavingGoalsList() {
             <p className="py-8 text-center text-sm text-muted-foreground">
               Create a wallet before adding saving goals.
             </p>
-          ) : savingGoals.length === 0 ? (
+          ) : filteredGoals.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              No saving goals yet. Add your first goal to start tracking.
+              {savingGoals.length === 0
+                ? "No saving goals yet. Add your first goal to start tracking."
+                : `No ${goalStatusFilter === "active" ? "ongoing" : goalStatusFilter} goals found.`}
             </p>
           ) : (
             <div className="flex flex-col gap-3">
-              {savingGoals.map((goal) => {
+              {filteredGoals.map((goal) => {
                 const remaining = Math.max(goal.targetAmount - goal.savedAmount, 0)
                 const progress = goal.targetAmount > 0 ? Math.min((goal.savedAmount / goal.targetAmount) * 100, 100) : 0
                 const isCompleted = goal.status === "completed"

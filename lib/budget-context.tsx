@@ -52,7 +52,7 @@ interface BudgetContextType {
   addDebt: (debt: Omit<Debt, "id" | "createdAt" | "paidAmount" | "status">) => Promise<void>
   updateDebt: (id: string, updates: Partial<Omit<Debt, "id">>) => Promise<void>
   deleteDebt: (id: string) => Promise<void>
-  recordDebtPayment: (id: string, paymentAmount: number, walletId: string, date: string) => Promise<void>
+  recordDebtPayment: (id: string, paymentAmount: number, walletId: string, date: string, transferFee?: number) => Promise<void>
   addSavingGoal: (goal: Omit<SavingGoal, "id" | "savedAmount" | "createdAt" | "status">) => Promise<void>
   updateSavingGoal: (id: string, updates: Partial<Omit<SavingGoal, "id">>) => Promise<void>
   deleteSavingGoal: (id: string) => Promise<void>
@@ -900,13 +900,20 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     await deleteDoc(debtRef)
   }, [user])
 
-  const recordDebtPayment = useCallback(async (id: string, paymentAmount: number, walletId: string, date: string) => {
+  const recordDebtPayment = useCallback(async (id: string, paymentAmount: number, walletId: string, date: string, transferFee = 0) => {
     if (!user || !transactionCollection) {
       throw new Error("You must be signed in to record a payment")
     }
 
+    if (!Number.isFinite(transferFee) || transferFee < 0) {
+      throw new Error("Transfer fee cannot be negative")
+    }
+
     const debt = debts.find((d) => d.id === id)
     if (!debt) throw new Error("Debt not found")
+    if (debt.type !== "owed_by_me" && transferFee > 0) {
+      throw new Error("Transfer fee is only supported when paying debts you owe")
+    }
 
     const actualPayment = Math.min(paymentAmount, debt.amount - debt.paidAmount)
     const newPaidAmount = debt.paidAmount + actualPayment
@@ -924,10 +931,30 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       description: debt.description,
     } as Record<string, unknown>)
 
-    await Promise.all([
+    const feePayload =
+      transferFee > 0
+        ? omitUndefinedFields({
+            amount: transferFee,
+            type: "expense" as const,
+            category: "other" as const,
+            customCategory: "Debt Payment Fee",
+            walletId,
+            date,
+            createdAt: Date.now() + 1,
+            description: `Transfer fee for debt payment to ${debt.name}`,
+          } as Record<string, unknown>)
+        : null
+
+    const writes: Promise<unknown>[] = [
       updateDoc(debtRef, { paidAmount: newPaidAmount, status: newStatus }),
       addDoc(transactionCollection, transactionPayload),
-    ])
+    ]
+
+    if (feePayload) {
+      writes.push(addDoc(transactionCollection, feePayload))
+    }
+
+    await Promise.all(writes)
   }, [user, transactionCollection, debts])
 
   const addSavingGoal = useCallback(async (goal: Omit<SavingGoal, "id" | "savedAmount" | "createdAt" | "status">) => {

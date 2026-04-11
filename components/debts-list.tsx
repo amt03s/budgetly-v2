@@ -52,11 +52,12 @@ export function DebtsList() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false)
   const [payingDebt, setPayingDebt] = useState<Debt | null>(null)
   const [paymentAmount, setPaymentAmount] = useState("")
+  const [paymentTransferFee, setPaymentTransferFee] = useState("")
   const [paymentWalletId, setPaymentWalletId] = useState("")
   const [paymentDate, setPaymentDate] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [filter, setFilter] = useState<"all" | "owed_by_me" | "owed_to_me">("all")
-  const [statusFilter, setStatusFilter] = useState<"active" | "paid">("active")
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "paid">("active")
 
   const handleEdit = (debt: Debt) => {
     setEditingDebt(debt)
@@ -75,6 +76,7 @@ export function DebtsList() {
   const handleOpenPayment = (debt: Debt) => {
     setPayingDebt(debt)
     setPaymentAmount("")
+    setPaymentTransferFee("")
     setPaymentWalletId(wallets[0]?.id ?? "")
     setPaymentDate(new Date().toISOString().split("T")[0])
     setPaymentDialogOpen(true)
@@ -84,11 +86,12 @@ export function DebtsList() {
     e.preventDefault()
     if (!payingDebt || !paymentWalletId) return
     const parsed = Number.parseFloat(paymentAmount)
-    if (Number.isNaN(parsed) || parsed <= 0) return
+    const parsedFee = paymentTransferFee.trim() === "" ? 0 : Number.parseFloat(paymentTransferFee)
+    if (Number.isNaN(parsed) || parsed <= 0 || Number.isNaN(parsedFee) || parsedFee < 0) return
 
     setIsProcessing(true)
     try {
-      await recordDebtPayment(payingDebt.id, parsed, paymentWalletId, paymentDate)
+      await recordDebtPayment(payingDebt.id, parsed, paymentWalletId, paymentDate, parsedFee)
       setPaymentDialogOpen(false)
     } finally {
       setIsProcessing(false)
@@ -97,7 +100,7 @@ export function DebtsList() {
 
   const filtered = debts.filter((d) => {
     const typeMatch = filter === "all" || d.type === filter
-    const statusMatch = d.status === statusFilter
+    const statusMatch = statusFilter === "all" || d.status === statusFilter
     return typeMatch && statusMatch
   })
 
@@ -127,15 +130,17 @@ export function DebtsList() {
             </Tabs>
             <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
               <TabsList>
-                <TabsTrigger value="active">Active</TabsTrigger>
-                <TabsTrigger value="paid">Paid</TabsTrigger>
+                <TabsTrigger value="active">Ongoing</TabsTrigger>
+                <TabsTrigger value="paid">Completed</TabsTrigger>
+                <TabsTrigger value="all">All</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
 
           {filtered.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              No {statusFilter} {filter === "all" ? "debts" : filter === "owed_by_me" ? "debts" : "receivables"} found.
+              No {statusFilter === "all" ? "" : `${statusFilter === "active" ? "ongoing" : "completed"} `}
+              {filter === "all" ? "debts" : filter === "owed_by_me" ? "debts" : "receivables"} found.
             </p>
           ) : (
             <div className="flex flex-col gap-3">
@@ -297,6 +302,20 @@ export function DebtsList() {
                 </SelectContent>
               </Select>
             </div>
+            {payingDebt?.type === "owed_by_me" && (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="payment-transfer-fee">Transfer Fee (optional)</Label>
+                <Input
+                  id="payment-transfer-fee"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={paymentTransferFee}
+                  onChange={(e) => setPaymentTransferFee(e.target.value)}
+                />
+              </div>
+            )}
             <div className="flex flex-col gap-2">
               <Label htmlFor="payment-date">Date</Label>
               <Input
