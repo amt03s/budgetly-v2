@@ -19,7 +19,7 @@ function getMessageText(message: ChatMessage): string {
 function buildGeminiHistory(messages: ChatMessage[]) {
   const rawHistory = messages
     .slice(0, -1)
-    .map((m) => ({
+    .map((m): { role: "user" | "model"; text: string } => ({
       role: m.role === "user" ? "user" : "model",
       text: getMessageText(m).trim(),
     }))
