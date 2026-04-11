@@ -31,6 +31,7 @@ export interface Transaction {
   category: Category
   customCategory?: string
   savingGoalId?: string
+  debtId?: string
   createdAt?: number
   transferId?: string
   walletId: string

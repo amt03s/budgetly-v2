@@ -421,6 +421,10 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       const isSavingWithdrawal =
         targetTransaction?.category === "savings" &&
         targetTransaction?.customCategory === "Saving Goal Withdrawal"
+      const isDebtPaymentTransaction =
+        Boolean(targetTransaction?.debtId) ||
+        targetTransaction?.customCategory?.startsWith("Debt payment – ") ||
+        targetTransaction?.customCategory?.startsWith("Received from ")
 
       const inferredGoalName = (() => {
         const description = targetTransaction?.description?.trim()
@@ -468,6 +472,43 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
             })()
           : null
 
+      const inferredDebtName = (() => {
+        const customCategory = targetTransaction?.customCategory?.trim()
+        if (!customCategory) {
+          return undefined
+        }
+
+        if (customCategory.startsWith("Debt payment – ")) {
+          return customCategory.replace(/^Debt payment – /, "").trim()
+        }
+
+        if (customCategory.startsWith("Received from ")) {
+          return customCategory.replace(/^Received from /, "").trim()
+        }
+
+        return undefined
+      })()
+
+      const debtForDeletedTransaction =
+        targetTransaction?.debtId
+          ? debts.find((debt) => debt.id === targetTransaction.debtId)
+          : inferredDebtName
+            ? debts.find((debt) => debt.name.trim() === inferredDebtName)
+            : undefined
+
+      const debtUpdatePayload =
+        targetTransaction && debtForDeletedTransaction && isDebtPaymentTransaction
+          ? (() => {
+              const nextPaidAmount = Math.max(debtForDeletedTransaction.paidAmount - targetTransaction.amount, 0)
+
+              return {
+                debtRef: doc(db, "users", user.uid, "debts", debtForDeletedTransaction.id),
+                nextPaidAmount,
+                nextStatus: nextPaidAmount >= debtForDeletedTransaction.amount ? "paid" : "active",
+              }
+            })()
+          : null
+
       if (recurringTemplateRef) {
         const batch = writeBatch(db)
         const transactionRef = doc(db, "users", user.uid, "transactions", id)
@@ -479,6 +520,14 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
             updateDoc(goalUpdatePayload.goalRef, {
               savedAmount: goalUpdatePayload.nextSavedAmount,
               status: goalUpdatePayload.nextStatus,
+            })
+          )
+        }
+        if (debtUpdatePayload) {
+          writes.push(
+            updateDoc(debtUpdatePayload.debtRef, {
+              paidAmount: debtUpdatePayload.nextPaidAmount,
+              status: debtUpdatePayload.nextStatus,
             })
           )
         }
@@ -496,12 +545,20 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
           })
         )
       }
+      if (debtUpdatePayload) {
+        writes.push(
+          updateDoc(debtUpdatePayload.debtRef, {
+            paidAmount: debtUpdatePayload.nextPaidAmount,
+            status: debtUpdatePayload.nextStatus,
+          })
+        )
+      }
       await Promise.all(writes)
     } catch (error) {
       console.error("Error deleting transaction:", error)
       throw error
     }
-  }, [transactions, user, savingGoals])
+  }, [transactions, user, savingGoals, debts])
 
   const addWallet = useCallback(async (wallet: Pick<Wallet, "name" | "initialBalance">) => {
     if (!walletCollection) {
@@ -896,9 +953,32 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       throw new Error("You must be signed in to delete a debt")
     }
 
+    const debt = debts.find((item) => item.id === id)
     const debtRef = doc(db, "users", user.uid, "debts", id)
-    await deleteDoc(debtRef)
-  }, [user])
+    const linkedTransactions = transactions.filter((transaction) => {
+      if (transaction.debtId === id) {
+        return true
+      }
+
+      if (!debt) {
+        return false
+      }
+
+      return (
+        transaction.customCategory === `Debt payment – ${debt.name}` ||
+        transaction.customCategory === `Received from ${debt.name}` ||
+        transaction.description === `Transfer fee for debt payment to ${debt.name}`
+      )
+    })
+
+    const batch = writeBatch(db)
+    batch.delete(debtRef)
+    linkedTransactions.forEach((transaction) => {
+      const transactionRef = doc(db, "users", user.uid, "transactions", transaction.id)
+      batch.delete(transactionRef)
+    })
+    await batch.commit()
+  }, [user, debts, transactions])
 
   const recordDebtPayment = useCallback(async (id: string, paymentAmount: number, walletId: string, date: string, transferFee = 0) => {
     if (!user || !transactionCollection) {
@@ -925,6 +1005,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       type: debt.type === "owed_by_me" ? "expense" : "income",
       category: "other" as const,
       customCategory: debt.type === "owed_by_me" ? `Debt payment – ${debt.name}` : `Received from ${debt.name}`,
+      debtId: debt.id,
       walletId,
       date,
       createdAt: Date.now(),
@@ -1004,9 +1085,34 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       throw new Error("You must be signed in to delete a saving goal")
     }
 
+    const goal = savingGoals.find((item) => item.id === id)
     const goalRef = doc(db, "users", user.uid, "savingGoals", id)
-    await deleteDoc(goalRef)
-  }, [user])
+    const linkedTransactions = transactions.filter((transaction) => {
+      if (transaction.savingGoalId === id) {
+        return true
+      }
+
+      if (!goal) {
+        return false
+      }
+
+      const description = transaction.description?.trim()
+      return (
+        description === `Contribution to ${goal.name}` ||
+        description?.startsWith(`Withdrawal from ${goal.name} to `) ||
+        description === `Transfer fee for contribution to ${goal.name}` ||
+        description === `Transfer fee for withdrawal from ${goal.name}`
+      )
+    })
+
+    const batch = writeBatch(db)
+    batch.delete(goalRef)
+    linkedTransactions.forEach((transaction) => {
+      const transactionRef = doc(db, "users", user.uid, "transactions", transaction.id)
+      batch.delete(transactionRef)
+    })
+    await batch.commit()
+  }, [user, savingGoals, transactions])
 
   const recordGoalContribution = useCallback(async (id: string, amount: number, date: string, sourceWalletId: string, fee = 0) => {
     if (!user || !transactionCollection) {
