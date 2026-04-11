@@ -349,6 +349,31 @@ export function generateSpendingInsights(transactions: Transaction[]): SpendingI
 
     const recentWindow = sumInRange(0, 13)
     const previousWindow = sumInRange(14, 27)
+    const recentWeek = sumInRange(0, 6)
+    const previousWeek = sumInRange(7, 13)
+
+    if (previousWeek > 0) {
+      const weekChangeRatio = recentWeek / previousWeek
+      const weekDeltaPercent = Math.round(Math.abs(weekChangeRatio - 1) * 100)
+
+      if (weekChangeRatio >= 1.1) {
+        insights.push({
+          id: "week-over-week-up",
+          title: "Week-over-week spending increased",
+          description: "You spent more this week compared with the previous week.",
+          supportingMetric: `${weekDeltaPercent}% more than last week`,
+          priority: "warning",
+        })
+      } else if (weekChangeRatio <= 0.9) {
+        insights.push({
+          id: "week-over-week-down",
+          title: "Week-over-week spending decreased",
+          description: "Your current week spending is lower than the previous week.",
+          supportingMetric: `${weekDeltaPercent}% less than last week`,
+          priority: "positive",
+        })
+      }
+    }
 
     if (previousWindow > 0) {
       const changeRatio = recentWindow / previousWindow
@@ -405,6 +430,34 @@ export function generateSpendingInsights(transactions: Transaction[]): SpendingI
   const monthlySeries = Array.from(monthlyTotalsMap.entries())
     .map(([month, amount]) => ({ month, amount }))
     .sort((a, b) => a.month.localeCompare(b.month))
+
+  if (monthlySeries.length >= 2) {
+    const currentMonthSpend = monthlySeries[monthlySeries.length - 1].amount
+    const previousMonthSpend = monthlySeries[monthlySeries.length - 2].amount
+
+    if (previousMonthSpend > 0) {
+      const monthChangeRatio = currentMonthSpend / previousMonthSpend
+      const monthDeltaPercent = Math.round(Math.abs(monthChangeRatio - 1) * 100)
+
+      if (monthChangeRatio >= 1.1) {
+        insights.push({
+          id: "month-over-month-up",
+          title: "Month-over-month spending increased",
+          description: "This month's spending is higher than last month.",
+          supportingMetric: `${monthDeltaPercent}% more than last month`,
+          priority: "warning",
+        })
+      } else if (monthChangeRatio <= 0.9) {
+        insights.push({
+          id: "month-over-month-down",
+          title: "Month-over-month spending decreased",
+          description: "This month's spending is lower than last month.",
+          supportingMetric: `${monthDeltaPercent}% less than last month`,
+          priority: "positive",
+        })
+      }
+    }
+  }
 
   if (monthlySeries.length >= 4) {
     const slope = linearRegressionSlope(monthlySeries.map((item) => item.amount))
