@@ -91,7 +91,7 @@ export function SavingGoalDialog({ open, onOpenChange, goal }: SavingGoalDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[85dvh] overflow-hidden sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{goal ? "Edit Saving Goal" : "Add Saving Goal"}</DialogTitle>
           <DialogDescription>
@@ -100,70 +100,72 @@ export function SavingGoalDialog({ open, onOpenChange, goal }: SavingGoalDialogP
               : "Create a goal and track your progress over time."}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="saving-goal-name">Goal Name</Label>
-            <Input
-              id="saving-goal-name"
-              placeholder="e.g., Emergency Fund"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              required
-            />
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-col gap-4 overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="saving-goal-name">Goal Name</Label>
+              <Input
+                id="saving-goal-name"
+                placeholder="e.g., Emergency Fund"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="saving-goal-target">Target Amount</Label>
+              <Input
+                id="saving-goal-target"
+                type="number"
+                min="0.01"
+                step="0.01"
+                placeholder="0.00"
+                value={targetAmount}
+                onChange={(event) => setTargetAmount(event.target.value)}
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="saving-goal-wallet">Destination Wallet</Label>
+              <Select value={walletId} onValueChange={setWalletId}>
+                <SelectTrigger id="saving-goal-wallet" className="w-full">
+                  <SelectValue placeholder="Select wallet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {wallets.map((wallet) => (
+                    <SelectItem key={wallet.id} value={wallet.id}>
+                      {wallet.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="saving-goal-date">Target Date (optional)</Label>
+              <Input
+                id="saving-goal-date"
+                type="date"
+                value={targetDate}
+                onChange={(event) => setTargetDate(event.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="saving-goal-note">Notes (optional)</Label>
+              <Textarea
+                id="saving-goal-note"
+                rows={2}
+                placeholder="Add context for this goal"
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="saving-goal-target">Target Amount</Label>
-            <Input
-              id="saving-goal-target"
-              type="number"
-              min="0.01"
-              step="0.01"
-              placeholder="0.00"
-              value={targetAmount}
-              onChange={(event) => setTargetAmount(event.target.value)}
-              required
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="saving-goal-wallet">Destination Wallet</Label>
-            <Select value={walletId} onValueChange={setWalletId}>
-              <SelectTrigger id="saving-goal-wallet">
-                <SelectValue placeholder="Select wallet" />
-              </SelectTrigger>
-              <SelectContent>
-                {wallets.map((wallet) => (
-                  <SelectItem key={wallet.id} value={wallet.id}>
-                    {wallet.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="saving-goal-date">Target Date (optional)</Label>
-            <Input
-              id="saving-goal-date"
-              type="date"
-              value={targetDate}
-              onChange={(event) => setTargetDate(event.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="saving-goal-note">Notes (optional)</Label>
-            <Textarea
-              id="saving-goal-note"
-              rows={2}
-              placeholder="Add context for this goal"
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-            />
-          </div>
-
-          <DialogFooter className="pt-2">
+          <DialogFooter className="border-t pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

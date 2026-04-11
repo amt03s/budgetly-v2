@@ -192,21 +192,21 @@ export function SavingGoalsList() {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>Saving Goals</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
               {totals.activeCount} active • {formatAmount(totals.saved)} saved of {formatAmount(totals.target)}
             </p>
           </div>
-          <Button onClick={handleAdd} size="sm" disabled={wallets.length === 0}>
+          <Button onClick={handleAdd} size="sm" disabled={wallets.length === 0} className="w-full sm:w-auto">
             <Plus className="mr-1 h-4 w-4" />
             Add
           </Button>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Tabs value={goalStatusFilter} onValueChange={(value) => setGoalStatusFilter(value as typeof goalStatusFilter)}>
-            <TabsList>
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="active">Ongoing</TabsTrigger>
               <TabsTrigger value="completed">Completed</TabsTrigger>
               <TabsTrigger value="all">All</TabsTrigger>
@@ -245,9 +245,9 @@ export function SavingGoalsList() {
                     key={goal.id}
                     className="flex flex-col gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted/40"
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <p className="truncate font-medium">{goal.name}</p>
                           <Badge variant={isCompleted ? "secondary" : "default"}>
                             {isCompleted ? "Completed" : "Active"}
@@ -266,13 +266,13 @@ export function SavingGoalsList() {
                         )}
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-1">
+                      <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap sm:gap-1">
                         {!isCompleted && (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleOpenContribute(goal)}
-                            className="h-8"
+                            className="h-8 flex-1 sm:flex-none"
                           >
                             <PiggyBank className="mr-1 h-4 w-4" />
                             Save
@@ -283,7 +283,7 @@ export function SavingGoalsList() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleOpenWithdraw(goal)}
-                            className="h-8"
+                            className="h-8 flex-1 sm:flex-none"
                           >
                             Withdraw
                           </Button>
@@ -353,7 +353,7 @@ export function SavingGoalsList() {
       />
 
       <Dialog open={contributeOpen} onOpenChange={setContributeOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="max-h-[85dvh] overflow-hidden sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Add Contribution</DialogTitle>
             <DialogDescription>
@@ -362,59 +362,61 @@ export function SavingGoalsList() {
                 : ""}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleContribute} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="goal-contribution-amount">Amount</Label>
-              <Input
-                id="goal-contribution-amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                placeholder="0.00"
-                value={contributionAmount}
-                onChange={(event) => setContributionAmount(event.target.value)}
-                required
-                autoFocus
-              />
+          <form onSubmit={handleContribute} className="flex min-h-0 flex-col gap-4 overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="goal-contribution-amount">Amount</Label>
+                <Input
+                  id="goal-contribution-amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="0.00"
+                  value={contributionAmount}
+                  onChange={(event) => setContributionAmount(event.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="goal-contribution-wallet">Source Wallet</Label>
+                <Select value={contributionSourceWalletId} onValueChange={setContributionSourceWalletId}>
+                  <SelectTrigger id="goal-contribution-wallet" className="w-full">
+                    <SelectValue placeholder="Select source wallet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wallets.map((wallet) => (
+                      <SelectItem key={wallet.id} value={wallet.id}>
+                        {wallet.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="goal-contribution-fee">Transfer Fee (optional)</Label>
+                <Input
+                  id="goal-contribution-fee"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={contributionFee}
+                  onChange={(event) => setContributionFee(event.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="goal-contribution-date">Date</Label>
+                <Input
+                  id="goal-contribution-date"
+                  type="date"
+                  value={contributionDate}
+                  onChange={(event) => setContributionDate(event.target.value)}
+                  required
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="goal-contribution-wallet">Source Wallet</Label>
-              <Select value={contributionSourceWalletId} onValueChange={setContributionSourceWalletId}>
-                <SelectTrigger id="goal-contribution-wallet">
-                  <SelectValue placeholder="Select source wallet" />
-                </SelectTrigger>
-                <SelectContent>
-                  {wallets.map((wallet) => (
-                    <SelectItem key={wallet.id} value={wallet.id}>
-                      {wallet.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="goal-contribution-fee">Transfer Fee (optional)</Label>
-              <Input
-                id="goal-contribution-fee"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={contributionFee}
-                onChange={(event) => setContributionFee(event.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="goal-contribution-date">Date</Label>
-              <Input
-                id="goal-contribution-date"
-                type="date"
-                value={contributionDate}
-                onChange={(event) => setContributionDate(event.target.value)}
-                required
-              />
-            </div>
-            <DialogFooter>
+            <DialogFooter className="border-t pt-4">
               <Button type="button" variant="outline" onClick={() => setContributeOpen(false)}>
                 Cancel
               </Button>
@@ -427,7 +429,7 @@ export function SavingGoalsList() {
       </Dialog>
 
       <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="max-h-[85dvh] overflow-hidden sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Withdraw Savings</DialogTitle>
             <DialogDescription>
@@ -436,60 +438,62 @@ export function SavingGoalsList() {
                 : ""}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleWithdraw} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="goal-withdraw-amount">Amount</Label>
-              <Input
-                id="goal-withdraw-amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                max={withdrawGoal?.savedAmount}
-                placeholder="0.00"
-                value={withdrawAmount}
-                onChange={(event) => setWithdrawAmount(event.target.value)}
-                required
-                autoFocus
-              />
+          <form onSubmit={handleWithdraw} className="flex min-h-0 flex-col gap-4 overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="goal-withdraw-amount">Amount</Label>
+                <Input
+                  id="goal-withdraw-amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  max={withdrawGoal?.savedAmount}
+                  placeholder="0.00"
+                  value={withdrawAmount}
+                  onChange={(event) => setWithdrawAmount(event.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="goal-withdraw-wallet">Destination Wallet</Label>
+                <Select value={withdrawDestinationWalletId} onValueChange={setWithdrawDestinationWalletId}>
+                  <SelectTrigger id="goal-withdraw-wallet" className="w-full">
+                    <SelectValue placeholder="Select destination wallet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {wallets.map((wallet) => (
+                      <SelectItem key={wallet.id} value={wallet.id}>
+                        {wallet.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="goal-withdraw-fee">Transfer Fee (optional)</Label>
+                <Input
+                  id="goal-withdraw-fee"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={withdrawFee}
+                  onChange={(event) => setWithdrawFee(event.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="goal-withdraw-date">Date</Label>
+                <Input
+                  id="goal-withdraw-date"
+                  type="date"
+                  value={withdrawDate}
+                  onChange={(event) => setWithdrawDate(event.target.value)}
+                  required
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="goal-withdraw-wallet">Destination Wallet</Label>
-              <Select value={withdrawDestinationWalletId} onValueChange={setWithdrawDestinationWalletId}>
-                <SelectTrigger id="goal-withdraw-wallet">
-                  <SelectValue placeholder="Select destination wallet" />
-                </SelectTrigger>
-                <SelectContent>
-                  {wallets.map((wallet) => (
-                    <SelectItem key={wallet.id} value={wallet.id}>
-                      {wallet.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="goal-withdraw-fee">Transfer Fee (optional)</Label>
-              <Input
-                id="goal-withdraw-fee"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={withdrawFee}
-                onChange={(event) => setWithdrawFee(event.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="goal-withdraw-date">Date</Label>
-              <Input
-                id="goal-withdraw-date"
-                type="date"
-                value={withdrawDate}
-                onChange={(event) => setWithdrawDate(event.target.value)}
-                required
-              />
-            </div>
-            <DialogFooter>
+            <DialogFooter className="border-t pt-4">
               <Button type="button" variant="outline" onClick={() => setWithdrawOpen(false)}>
                 Cancel
               </Button>
