@@ -57,12 +57,14 @@ export function SavingGoalsList() {
   const [contributeOpen, setContributeOpen] = useState(false)
   const [activeGoal, setActiveGoal] = useState<SavingGoal | null>(null)
   const [contributionAmount, setContributionAmount] = useState("")
+  const [contributionFee, setContributionFee] = useState("")
   const [contributionSourceWalletId, setContributionSourceWalletId] = useState("")
   const [contributionDate, setContributionDate] = useState("")
   const [isSubmittingContribution, setIsSubmittingContribution] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const [withdrawGoal, setWithdrawGoal] = useState<SavingGoal | null>(null)
   const [withdrawAmount, setWithdrawAmount] = useState("")
+  const [withdrawFee, setWithdrawFee] = useState("")
   const [withdrawDestinationWalletId, setWithdrawDestinationWalletId] = useState("")
   const [withdrawDate, setWithdrawDate] = useState("")
   const [isSubmittingWithdraw, setIsSubmittingWithdraw] = useState(false)
@@ -96,6 +98,7 @@ export function SavingGoalsList() {
   const handleOpenContribute = (goal: SavingGoal) => {
     setActiveGoal(goal)
     setContributionAmount("")
+    setContributionFee("")
     setContributionSourceWalletId(goal.walletId)
     setContributionDate(new Date().toISOString().split("T")[0])
     setContributeOpen(true)
@@ -108,13 +111,26 @@ export function SavingGoalsList() {
     }
 
     const parsedAmount = Number.parseFloat(contributionAmount)
-    if (Number.isNaN(parsedAmount) || parsedAmount <= 0 || !contributionSourceWalletId) {
+    const parsedFee = contributionFee.trim() === "" ? 0 : Number.parseFloat(contributionFee)
+    if (
+      Number.isNaN(parsedAmount) ||
+      parsedAmount <= 0 ||
+      Number.isNaN(parsedFee) ||
+      parsedFee < 0 ||
+      !contributionSourceWalletId
+    ) {
       return
     }
 
     setIsSubmittingContribution(true)
     try {
-      await recordGoalContribution(activeGoal.id, parsedAmount, contributionDate, contributionSourceWalletId)
+      await recordGoalContribution(
+        activeGoal.id,
+        parsedAmount,
+        contributionDate,
+        contributionSourceWalletId,
+        parsedFee
+      )
       setContributeOpen(false)
     } finally {
       setIsSubmittingContribution(false)
@@ -124,6 +140,7 @@ export function SavingGoalsList() {
   const handleOpenWithdraw = (goal: SavingGoal) => {
     setWithdrawGoal(goal)
     setWithdrawAmount("")
+    setWithdrawFee("")
     setWithdrawDestinationWalletId(goal.walletId)
     setWithdrawDate(new Date().toISOString().split("T")[0])
     setWithdrawOpen(true)
@@ -136,13 +153,26 @@ export function SavingGoalsList() {
     }
 
     const parsedAmount = Number.parseFloat(withdrawAmount)
-    if (Number.isNaN(parsedAmount) || parsedAmount <= 0 || !withdrawDestinationWalletId) {
+    const parsedFee = withdrawFee.trim() === "" ? 0 : Number.parseFloat(withdrawFee)
+    if (
+      Number.isNaN(parsedAmount) ||
+      parsedAmount <= 0 ||
+      Number.isNaN(parsedFee) ||
+      parsedFee < 0 ||
+      !withdrawDestinationWalletId
+    ) {
       return
     }
 
     setIsSubmittingWithdraw(true)
     try {
-      await recordGoalWithdrawal(withdrawGoal.id, parsedAmount, withdrawDate, withdrawDestinationWalletId)
+      await recordGoalWithdrawal(
+        withdrawGoal.id,
+        parsedAmount,
+        withdrawDate,
+        withdrawDestinationWalletId,
+        parsedFee
+      )
       setWithdrawOpen(false)
     } finally {
       setIsSubmittingWithdraw(false)
@@ -343,6 +373,18 @@ export function SavingGoalsList() {
               </Select>
             </div>
             <div className="flex flex-col gap-2">
+              <Label htmlFor="goal-contribution-fee">Transfer Fee (optional)</Label>
+              <Input
+                id="goal-contribution-fee"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={contributionFee}
+                onChange={(event) => setContributionFee(event.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
               <Label htmlFor="goal-contribution-date">Date</Label>
               <Input
                 id="goal-contribution-date"
@@ -404,6 +446,18 @@ export function SavingGoalsList() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="goal-withdraw-fee">Transfer Fee (optional)</Label>
+              <Input
+                id="goal-withdraw-fee"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={withdrawFee}
+                onChange={(event) => setWithdrawFee(event.target.value)}
+              />
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="goal-withdraw-date">Date</Label>

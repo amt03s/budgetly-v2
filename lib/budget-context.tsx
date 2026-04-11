@@ -56,8 +56,8 @@ interface BudgetContextType {
   addSavingGoal: (goal: Omit<SavingGoal, "id" | "savedAmount" | "createdAt" | "status">) => Promise<void>
   updateSavingGoal: (id: string, updates: Partial<Omit<SavingGoal, "id">>) => Promise<void>
   deleteSavingGoal: (id: string) => Promise<void>
-  recordGoalContribution: (id: string, amount: number, date: string, sourceWalletId: string) => Promise<void>
-  recordGoalWithdrawal: (id: string, amount: number, date: string, destinationWalletId: string) => Promise<void>
+  recordGoalContribution: (id: string, amount: number, date: string, sourceWalletId: string, fee?: number) => Promise<void>
+  recordGoalWithdrawal: (id: string, amount: number, date: string, destinationWalletId: string, fee?: number) => Promise<void>
   addRecurringTemplate: (template: Omit<RecurringTransactionTemplate, "id" | "createdAt" | "lastGeneratedAt" | "isPaused">) => Promise<string>
   updateRecurringTemplate: (id: string, updates: Partial<Omit<RecurringTransactionTemplate, "id" | "createdAt">>) => Promise<void>
   toggleRecurringTemplatePaused: (id: string, paused: boolean) => Promise<void>
@@ -415,22 +415,93 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
+      const isSavingContribution =
+        targetTransaction?.category === "savings" &&
+        targetTransaction?.customCategory === "Saving Goal"
+      const isSavingWithdrawal =
+        targetTransaction?.category === "savings" &&
+        targetTransaction?.customCategory === "Saving Goal Withdrawal"
+
+      const inferredGoalName = (() => {
+        const description = targetTransaction?.description?.trim()
+        if (!description) {
+          return undefined
+        }
+
+        if (isSavingContribution && description.startsWith("Contribution to ")) {
+          return description.replace(/^Contribution to /, "").trim()
+        }
+
+        if (isSavingWithdrawal && description.startsWith("Withdrawal from ")) {
+          return description
+            .replace(/^Withdrawal from /, "")
+            .split(" to ")[0]
+            .trim()
+        }
+
+        return undefined
+      })()
+
+      const goalForDeletedTransaction =
+        targetTransaction?.savingGoalId
+          ? savingGoals.find((goal) => goal.id === targetTransaction.savingGoalId)
+          : inferredGoalName
+            ? savingGoals.find((goal) => goal.name.trim() === inferredGoalName)
+          : undefined
+
+      const goalUpdatePayload =
+        targetTransaction && goalForDeletedTransaction && (isSavingContribution || isSavingWithdrawal)
+          ? (() => {
+              const delta = isSavingContribution
+                ? -targetTransaction.amount
+                : targetTransaction.amount
+              const nextSavedAmount = Math.max(goalForDeletedTransaction.savedAmount + delta, 0)
+
+              return {
+                goalRef: doc(db, "users", user.uid, "savingGoals", goalForDeletedTransaction.id),
+                nextSavedAmount,
+                nextStatus:
+                  nextSavedAmount >= goalForDeletedTransaction.targetAmount
+                    ? "completed"
+                    : "active",
+              }
+            })()
+          : null
+
       if (recurringTemplateRef) {
         const batch = writeBatch(db)
         const transactionRef = doc(db, "users", user.uid, "transactions", id)
         batch.delete(transactionRef)
         batch.delete(recurringTemplateRef)
-        await batch.commit()
+        const writes: Promise<unknown>[] = [batch.commit()]
+        if (goalUpdatePayload) {
+          writes.push(
+            updateDoc(goalUpdatePayload.goalRef, {
+              savedAmount: goalUpdatePayload.nextSavedAmount,
+              status: goalUpdatePayload.nextStatus,
+            })
+          )
+        }
+        await Promise.all(writes)
         return
       }
 
       const transactionRef = doc(db, "users", user.uid, "transactions", id)
-      await deleteDoc(transactionRef)
+      const writes: Promise<unknown>[] = [deleteDoc(transactionRef)]
+      if (goalUpdatePayload) {
+        writes.push(
+          updateDoc(goalUpdatePayload.goalRef, {
+            savedAmount: goalUpdatePayload.nextSavedAmount,
+            status: goalUpdatePayload.nextStatus,
+          })
+        )
+      }
+      await Promise.all(writes)
     } catch (error) {
       console.error("Error deleting transaction:", error)
       throw error
     }
-  }, [transactions, user])
+  }, [transactions, user, savingGoals])
 
   const addWallet = useCallback(async (wallet: Pick<Wallet, "name" | "initialBalance">) => {
     if (!walletCollection) {
@@ -910,13 +981,16 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     await deleteDoc(goalRef)
   }, [user])
 
-  const recordGoalContribution = useCallback(async (id: string, amount: number, date: string, sourceWalletId: string) => {
+  const recordGoalContribution = useCallback(async (id: string, amount: number, date: string, sourceWalletId: string, fee = 0) => {
     if (!user || !transactionCollection) {
       throw new Error("You must be signed in to record goal contributions")
     }
 
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new Error("Contribution amount must be greater than zero")
+    }
+    if (!Number.isFinite(fee) || fee < 0) {
+      throw new Error("Transfer fee cannot be negative")
     }
 
     const goal = savingGoals.find((item) => item.id === id)
@@ -934,7 +1008,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     }
 
     const remaining = Math.max(goal.targetAmount - goal.savedAmount, 0)
-    const actualAmount = Math.min(amount, remaining, sourceWallet.balance)
+    const actualAmount = Math.min(amount, remaining, Math.max(sourceWallet.balance - fee, 0))
     if (actualAmount <= 0) {
       throw new Error("This saving goal is already completed")
     }
@@ -947,28 +1021,52 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       type: "expense" as const,
       category: "savings" as const,
       customCategory: "Saving Goal",
+      savingGoalId: goal.id,
       walletId: sourceWalletId,
       date,
       createdAt: Date.now(),
       description: `Contribution to ${goal.name}`,
     } as Record<string, unknown>)
 
-    await Promise.all([
+    const feePayload =
+      fee > 0
+        ? omitUndefinedFields({
+            amount: fee,
+            type: "expense" as const,
+            category: "other" as const,
+            customCategory: "Saving Goal Transfer Fee",
+            walletId: sourceWalletId,
+            date,
+            createdAt: Date.now() + 1,
+            description: `Transfer fee for contribution to ${goal.name}`,
+          } as Record<string, unknown>)
+        : null
+
+    const writes: Promise<unknown>[] = [
       updateDoc(goalRef, {
         savedAmount: nextSavedAmount,
         status: nextSavedAmount >= goal.targetAmount ? "completed" : "active",
       }),
       addDoc(transactionCollection, transactionPayload),
-    ])
+    ]
+
+    if (feePayload) {
+      writes.push(addDoc(transactionCollection, feePayload))
+    }
+
+    await Promise.all(writes)
   }, [user, transactionCollection, savingGoals, walletsWithBalances])
 
-  const recordGoalWithdrawal = useCallback(async (id: string, amount: number, date: string, destinationWalletId: string) => {
+  const recordGoalWithdrawal = useCallback(async (id: string, amount: number, date: string, destinationWalletId: string, fee = 0) => {
     if (!user || !transactionCollection) {
       throw new Error("You must be signed in to record goal withdrawals")
     }
 
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new Error("Withdrawal amount must be greater than zero")
+    }
+    if (!Number.isFinite(fee) || fee < 0) {
+      throw new Error("Transfer fee cannot be negative")
     }
 
     const goal = savingGoals.find((item) => item.id === id)
@@ -981,12 +1079,12 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       throw new Error("Destination wallet was not found")
     }
 
-    const actualAmount = Math.min(amount, goal.savedAmount)
+    const actualAmount = Math.min(amount, Math.max(goal.savedAmount - fee, 0))
     if (actualAmount <= 0) {
       throw new Error("There is no saved amount to withdraw")
     }
 
-    const nextSavedAmount = goal.savedAmount - actualAmount
+    const nextSavedAmount = goal.savedAmount - actualAmount - fee
     const goalRef = doc(db, "users", user.uid, "savingGoals", id)
 
     const transactionPayload = omitUndefinedFields({
@@ -994,19 +1092,40 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       type: "income" as const,
       category: "savings" as const,
       customCategory: "Saving Goal Withdrawal",
+      savingGoalId: goal.id,
       walletId: destinationWalletId,
       date,
       createdAt: Date.now(),
       description: `Withdrawal from ${goal.name} to ${destinationWallet.name}`,
     } as Record<string, unknown>)
 
-    await Promise.all([
+    const feePayload =
+      fee > 0
+        ? omitUndefinedFields({
+            amount: fee,
+            type: "expense" as const,
+            category: "other" as const,
+            customCategory: "Saving Goal Transfer Fee",
+            walletId: destinationWalletId,
+            date,
+            createdAt: Date.now() + 1,
+            description: `Transfer fee for withdrawal from ${goal.name}`,
+          } as Record<string, unknown>)
+        : null
+
+    const writes: Promise<unknown>[] = [
       updateDoc(goalRef, {
         savedAmount: nextSavedAmount,
         status: nextSavedAmount >= goal.targetAmount ? "completed" : "active",
       }),
       addDoc(transactionCollection, transactionPayload),
-    ])
+    ]
+
+    if (feePayload) {
+      writes.push(addDoc(transactionCollection, feePayload))
+    }
+
+    await Promise.all(writes)
   }, [user, transactionCollection, savingGoals, walletsWithBalances])
 
   const addChatMessage = useCallback((message: Omit<ChatMessage, "id" | "timestamp">) => {
