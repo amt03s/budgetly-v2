@@ -56,8 +56,8 @@ interface BudgetContextType {
   addSavingGoal: (goal: Omit<SavingGoal, "id" | "savedAmount" | "createdAt" | "status">) => Promise<void>
   updateSavingGoal: (id: string, updates: Partial<Omit<SavingGoal, "id">>) => Promise<void>
   deleteSavingGoal: (id: string) => Promise<void>
-  recordGoalContribution: (id: string, amount: number, date: string) => Promise<void>
-  recordGoalWithdrawal: (id: string, amount: number, date: string) => Promise<void>
+  recordGoalContribution: (id: string, amount: number, date: string, sourceWalletId: string) => Promise<void>
+  recordGoalWithdrawal: (id: string, amount: number, date: string, destinationWalletId: string) => Promise<void>
   addRecurringTemplate: (template: Omit<RecurringTransactionTemplate, "id" | "createdAt" | "lastGeneratedAt" | "isPaused">) => Promise<string>
   updateRecurringTemplate: (id: string, updates: Partial<Omit<RecurringTransactionTemplate, "id" | "createdAt">>) => Promise<void>
   toggleRecurringTemplatePaused: (id: string, paused: boolean) => Promise<void>
@@ -910,7 +910,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     await deleteDoc(goalRef)
   }, [user])
 
-  const recordGoalContribution = useCallback(async (id: string, amount: number, date: string) => {
+  const recordGoalContribution = useCallback(async (id: string, amount: number, date: string, sourceWalletId: string) => {
     if (!user || !transactionCollection) {
       throw new Error("You must be signed in to record goal contributions")
     }
@@ -924,17 +924,17 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       throw new Error("Saving goal not found")
     }
 
-    const wallet = walletsWithBalances.find((item) => item.id === goal.walletId)
-    if (!wallet) {
-      throw new Error("Wallet for this saving goal was not found")
+    const sourceWallet = walletsWithBalances.find((item) => item.id === sourceWalletId)
+    if (!sourceWallet) {
+      throw new Error("Source wallet was not found")
     }
 
-    if (wallet.balance <= 0) {
+    if (sourceWallet.balance <= 0) {
       throw new Error("Selected wallet has no available balance")
     }
 
     const remaining = Math.max(goal.targetAmount - goal.savedAmount, 0)
-    const actualAmount = Math.min(amount, remaining, wallet.balance)
+    const actualAmount = Math.min(amount, remaining, sourceWallet.balance)
     if (actualAmount <= 0) {
       throw new Error("This saving goal is already completed")
     }
@@ -947,7 +947,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       type: "expense" as const,
       category: "savings" as const,
       customCategory: "Saving Goal",
-      walletId: goal.walletId,
+      walletId: sourceWalletId,
       date,
       createdAt: Date.now(),
       description: `Contribution to ${goal.name}`,
@@ -962,7 +962,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     ])
   }, [user, transactionCollection, savingGoals, walletsWithBalances])
 
-  const recordGoalWithdrawal = useCallback(async (id: string, amount: number, date: string) => {
+  const recordGoalWithdrawal = useCallback(async (id: string, amount: number, date: string, destinationWalletId: string) => {
     if (!user || !transactionCollection) {
       throw new Error("You must be signed in to record goal withdrawals")
     }
@@ -974,6 +974,11 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     const goal = savingGoals.find((item) => item.id === id)
     if (!goal) {
       throw new Error("Saving goal not found")
+    }
+
+    const destinationWallet = walletsWithBalances.find((item) => item.id === destinationWalletId)
+    if (!destinationWallet) {
+      throw new Error("Destination wallet was not found")
     }
 
     const actualAmount = Math.min(amount, goal.savedAmount)
@@ -989,10 +994,10 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       type: "income" as const,
       category: "savings" as const,
       customCategory: "Saving Goal Withdrawal",
-      walletId: goal.walletId,
+      walletId: destinationWalletId,
       date,
       createdAt: Date.now(),
-      description: `Withdrawal from ${goal.name}`,
+      description: `Withdrawal from ${goal.name} to ${destinationWallet.name}`,
     } as Record<string, unknown>)
 
     await Promise.all([
@@ -1002,7 +1007,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       }),
       addDoc(transactionCollection, transactionPayload),
     ])
-  }, [user, transactionCollection, savingGoals])
+  }, [user, transactionCollection, savingGoals, walletsWithBalances])
 
   const addChatMessage = useCallback((message: Omit<ChatMessage, "id" | "timestamp">) => {
     const newMessage: ChatMessage = {

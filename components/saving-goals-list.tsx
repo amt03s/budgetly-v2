@@ -10,6 +10,13 @@ import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -50,11 +57,13 @@ export function SavingGoalsList() {
   const [contributeOpen, setContributeOpen] = useState(false)
   const [activeGoal, setActiveGoal] = useState<SavingGoal | null>(null)
   const [contributionAmount, setContributionAmount] = useState("")
+  const [contributionSourceWalletId, setContributionSourceWalletId] = useState("")
   const [contributionDate, setContributionDate] = useState("")
   const [isSubmittingContribution, setIsSubmittingContribution] = useState(false)
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const [withdrawGoal, setWithdrawGoal] = useState<SavingGoal | null>(null)
   const [withdrawAmount, setWithdrawAmount] = useState("")
+  const [withdrawDestinationWalletId, setWithdrawDestinationWalletId] = useState("")
   const [withdrawDate, setWithdrawDate] = useState("")
   const [isSubmittingWithdraw, setIsSubmittingWithdraw] = useState(false)
 
@@ -87,6 +96,7 @@ export function SavingGoalsList() {
   const handleOpenContribute = (goal: SavingGoal) => {
     setActiveGoal(goal)
     setContributionAmount("")
+    setContributionSourceWalletId(goal.walletId)
     setContributionDate(new Date().toISOString().split("T")[0])
     setContributeOpen(true)
   }
@@ -98,13 +108,13 @@ export function SavingGoalsList() {
     }
 
     const parsedAmount = Number.parseFloat(contributionAmount)
-    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+    if (Number.isNaN(parsedAmount) || parsedAmount <= 0 || !contributionSourceWalletId) {
       return
     }
 
     setIsSubmittingContribution(true)
     try {
-      await recordGoalContribution(activeGoal.id, parsedAmount, contributionDate)
+      await recordGoalContribution(activeGoal.id, parsedAmount, contributionDate, contributionSourceWalletId)
       setContributeOpen(false)
     } finally {
       setIsSubmittingContribution(false)
@@ -114,6 +124,7 @@ export function SavingGoalsList() {
   const handleOpenWithdraw = (goal: SavingGoal) => {
     setWithdrawGoal(goal)
     setWithdrawAmount("")
+    setWithdrawDestinationWalletId(goal.walletId)
     setWithdrawDate(new Date().toISOString().split("T")[0])
     setWithdrawOpen(true)
   }
@@ -125,13 +136,13 @@ export function SavingGoalsList() {
     }
 
     const parsedAmount = Number.parseFloat(withdrawAmount)
-    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+    if (Number.isNaN(parsedAmount) || parsedAmount <= 0 || !withdrawDestinationWalletId) {
       return
     }
 
     setIsSubmittingWithdraw(true)
     try {
-      await recordGoalWithdrawal(withdrawGoal.id, parsedAmount, withdrawDate)
+      await recordGoalWithdrawal(withdrawGoal.id, parsedAmount, withdrawDate, withdrawDestinationWalletId)
       setWithdrawOpen(false)
     } finally {
       setIsSubmittingWithdraw(false)
@@ -317,6 +328,21 @@ export function SavingGoalsList() {
               />
             </div>
             <div className="flex flex-col gap-2">
+              <Label htmlFor="goal-contribution-wallet">Source Wallet</Label>
+              <Select value={contributionSourceWalletId} onValueChange={setContributionSourceWalletId}>
+                <SelectTrigger id="goal-contribution-wallet">
+                  <SelectValue placeholder="Select source wallet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {wallets.map((wallet) => (
+                    <SelectItem key={wallet.id} value={wallet.id}>
+                      {wallet.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
               <Label htmlFor="goal-contribution-date">Date</Label>
               <Input
                 id="goal-contribution-date"
@@ -330,7 +356,7 @@ export function SavingGoalsList() {
               <Button type="button" variant="outline" onClick={() => setContributeOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmittingContribution}>
+              <Button type="submit" disabled={isSubmittingContribution || !contributionSourceWalletId}>
                 Save Contribution
               </Button>
             </DialogFooter>
@@ -344,7 +370,7 @@ export function SavingGoalsList() {
             <DialogTitle>Withdraw Savings</DialogTitle>
             <DialogDescription>
               {withdrawGoal
-                ? `Move money back from \"${withdrawGoal.name}\" to its wallet.`
+                ? `Move money from \"${withdrawGoal.name}\" to a destination wallet.`
                 : ""}
             </DialogDescription>
           </DialogHeader>
@@ -365,6 +391,21 @@ export function SavingGoalsList() {
               />
             </div>
             <div className="flex flex-col gap-2">
+              <Label htmlFor="goal-withdraw-wallet">Destination Wallet</Label>
+              <Select value={withdrawDestinationWalletId} onValueChange={setWithdrawDestinationWalletId}>
+                <SelectTrigger id="goal-withdraw-wallet">
+                  <SelectValue placeholder="Select destination wallet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {wallets.map((wallet) => (
+                    <SelectItem key={wallet.id} value={wallet.id}>
+                      {wallet.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
               <Label htmlFor="goal-withdraw-date">Date</Label>
               <Input
                 id="goal-withdraw-date"
@@ -378,7 +419,7 @@ export function SavingGoalsList() {
               <Button type="button" variant="outline" onClick={() => setWithdrawOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmittingWithdraw}>
+              <Button type="submit" disabled={isSubmittingWithdraw || !withdrawDestinationWalletId}>
                 Confirm Withdrawal
               </Button>
             </DialogFooter>

@@ -127,7 +127,7 @@ export function SavingGoalDialog({ open, onOpenChange, goal }: SavingGoalDialogP
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="saving-goal-wallet">Source Wallet</Label>
+            <Label htmlFor="saving-goal-wallet">Destination Wallet</Label>
             <Select value={walletId} onValueChange={setWalletId}>
               <SelectTrigger id="saving-goal-wallet">
                 <SelectValue placeholder="Select wallet" />
