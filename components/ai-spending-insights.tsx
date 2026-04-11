@@ -83,7 +83,7 @@ export function AiSpendingInsights() {
       </CardHeader>
       <CardContent className="space-y-6 pt-0">
         <div>
-          <p className="mb-2 text-sm font-medium">Anomaly Timeline</p>
+          <p className="mb-2 text-sm font-medium">Anomaly Timeline (Net Daily Outflow)</p>
           {timelineData.length === 0 ? (
             <p className="rounded-md border p-3 text-sm text-muted-foreground">
               Add more days of expense history to unlock anomaly timeline tracking.
@@ -108,7 +108,7 @@ export function AiSpendingInsights() {
                   }}
                 />
                 <Line type="monotone" dataKey="baseline" name="Baseline" stroke="#8b8b8b" strokeDasharray="4 4" dot={false} />
-                <Line type="monotone" dataKey="amount" name="Actual" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="amount" name="Net Outflow" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -135,8 +135,13 @@ export function AiSpendingInsights() {
                   </div>
                   <p className="mb-2 text-xs text-muted-foreground">{anomaly.description}</p>
                   <p className="text-xs text-muted-foreground">
-                    Observed {formatAmount(anomaly.amount)} vs baseline {formatAmount(anomaly.baselineAmount)}
+                    Net outflow {formatAmount(anomaly.amount)} vs baseline {formatAmount(anomaly.baselineAmount)}
                   </p>
+                  {anomaly.sameDayIncomeAmount > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Includes same-day income offset: expenses {formatAmount(anomaly.grossExpenseAmount)} - income {formatAmount(anomaly.sameDayIncomeAmount)}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

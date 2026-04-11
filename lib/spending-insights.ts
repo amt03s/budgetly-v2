@@ -13,6 +13,8 @@ export interface SpendingAnomaly {
   description: string
   category?: Category
   amount: number
+  grossExpenseAmount: number
+  sameDayIncomeAmount: number
   baselineAmount: number
   deviationScore: number
   severity: AnomalySeverity
@@ -35,6 +37,8 @@ export interface SpendingInsightsResult {
   timeline: Array<{
     date: string
     amount: number
+    grossExpense: number
+    sameDayIncome: number
     baseline: number
     isAnomaly: boolean
   }>
@@ -171,6 +175,7 @@ export function generateSpendingInsights(transactions: Transaction[]): SpendingI
   }
 
   const dailyTotalsMap = new Map<string, number>()
+  const dailyIncomeMap = new Map<string, number>()
   const categoryMonthlyMap = new Map<string, number>()
 
   expenses.forEach((expense) => {
@@ -184,8 +189,29 @@ export function generateSpendingInsights(transactions: Transaction[]): SpendingI
     )
   })
 
+  transactions
+    .filter((transaction) => transaction.type === "income" && !transaction.transferId && transaction.amount > 0)
+    .forEach((income) => {
+      const dateKey = parseDateKey(income.date)
+      if (!dateKey) {
+        return
+      }
+
+      dailyIncomeMap.set(dateKey, (dailyIncomeMap.get(dateKey) ?? 0) + income.amount)
+    })
+
   const dailySeries = Array.from(dailyTotalsMap.entries())
-    .map(([date, amount]) => ({ date, amount }))
+    .map(([date, grossExpense]) => {
+      const sameDayIncome = dailyIncomeMap.get(date) ?? 0
+      const netOutflow = Math.max(grossExpense - sameDayIncome, 0)
+
+      return {
+        date,
+        amount: netOutflow,
+        grossExpense,
+        sameDayIncome,
+      }
+    })
     .sort((a, b) => a.date.localeCompare(b.date))
 
   const anomalies: SpendingAnomaly[] = []
@@ -193,6 +219,8 @@ export function generateSpendingInsights(transactions: Transaction[]): SpendingI
   const timeline: Array<{
     date: string
     amount: number
+    grossExpense: number
+    sameDayIncome: number
     baseline: number
     isAnomaly: boolean
   }> = []
@@ -216,6 +244,8 @@ export function generateSpendingInsights(transactions: Transaction[]): SpendingI
     timeline.push({
       date: current.date,
       amount: current.amount,
+      grossExpense: current.grossExpense,
+      sameDayIncome: current.sameDayIncome,
       baseline,
       isAnomaly,
     })
@@ -225,8 +255,13 @@ export function generateSpendingInsights(transactions: Transaction[]): SpendingI
         id: `daily-${current.date}`,
         date: current.date,
         title: "Daily spending anomaly",
-        description: `Spending was ${Math.round((current.amount / baseline - 1) * 100)}% above your expected daily baseline.`,
+        description:
+          current.sameDayIncome > 0
+            ? `Net spending (expenses - same-day income) was ${Math.round((current.amount / baseline - 1) * 100)}% above your expected daily baseline.`
+            : `Spending was ${Math.round((current.amount / baseline - 1) * 100)}% above your expected daily baseline.`,
         amount: current.amount,
+        grossExpenseAmount: current.grossExpense,
+        sameDayIncomeAmount: current.sameDayIncome,
         baselineAmount: baseline,
         deviationScore: zScore,
         severity: getSeverity(zScore),
@@ -284,6 +319,8 @@ export function generateSpendingInsights(transactions: Transaction[]): SpendingI
           description: `Spending in ${category} is ${Math.round((ratio - 1) * 100)}% above your monthly trend.`,
           category,
           amount: currentAmount,
+          grossExpenseAmount: currentAmount,
+          sameDayIncomeAmount: 0,
           baselineAmount: categoryBaseline,
           deviationScore: score,
           severity: score >= 3.5 ? "high" : "medium",
